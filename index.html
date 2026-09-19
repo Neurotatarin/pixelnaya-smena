@@ -940,6 +940,7 @@ window.PF={applySkinConfig,SKIN,levelSpec,genShooters,getLanes,lapSim,start:n=>{
   var ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
   var android=/android/i.test(navigator.userAgent);
   document.getElementById('installX').onclick=function(){box.hidden=true;try{localStorage.setItem('smena-install-x','1')}catch(e){}};
+  new MutationObserver(function(){box.style.visibility=document.getElementById('menu').hidden?'hidden':''}).observe(document.getElementById('menu'),{attributes:true});
   if(ios){txt.innerHTML='Игра как приложение: нажми <b>Поделиться</b> внизу Safari и выбери <b>На экран «Домой»</b>';box.hidden=false}
   else if(android){txt.innerHTML='Поставь игру на телефон: кнопка справа или <a href="pixelnaya-smena.apk" style="color:#2d2a54">скачать APK</a>';box.hidden=false}
   addEventListener('beforeinstallprompt',function(e){e.preventDefault();var p=e;btn.hidden=false;if(!android)txt.textContent='Поставь игру как приложение, работает без интернета';box.hidden=false;btn.onclick=function(){p.prompt();box.hidden=true}});
