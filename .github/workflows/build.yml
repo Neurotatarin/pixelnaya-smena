@@ -1,0 +1,86 @@
+name: build
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: build
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unpack game files
+        run: |
+          if [ -f pack.txt ]; then
+          python3 - <<'PY'
+          import os
+          cur = None
+          buf = []
+          def flush():
+              if cur is None:
+                  return
+              d = os.path.dirname(cur)
+              if d:
+                  os.makedirs(d, exist_ok=True)
+              open(cur, 'w', encoding='utf-8').write(''.join(buf))
+          for line in open('pack.txt', encoding='utf-8'):
+              if line.startswith('=====FILE: '):
+                  flush()
+                  cur = line[len('=====FILE: '):].strip()
+                  buf = []
+              else:
+                  buf.append(line)
+          flush()
+          PY
+          pip install pillow
+          mkdir -p icons
+          python3 mkicons.py
+          git rm -q pack.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Unpack game files and build icons"
+          git push
+          fi
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Build APK
+        run: |
+          mkdir -p android/app/src/main/assets/www android/app/src/main/res/mipmap-xxxhdpi
+          cp -r index.html manifest.webmanifest icons skin android/app/src/main/assets/www/
+          cp icons/icon-192.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          cd android
+          gradle assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk ../pixelnaya-smena.apk
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.${{ github.run_number }}
+          name: Pixelnaya Smena 1.${{ github.run_number }}
+          body: Android. Download pixelnaya-smena.apk, open it and allow install from this source.
+          files: pixelnaya-smena.apk
+          make_latest: true
+      - name: Prepare site
+        run: |
+          mkdir -p _site
+          cp -r index.html manifest.webmanifest sw.js icons skin pixelnaya-smena.apk _site/
+          touch _site/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deploy
+        uses: actions/deploy-pages@v4
