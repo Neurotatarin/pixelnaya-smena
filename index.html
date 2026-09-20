@@ -446,11 +446,18 @@ function genShooters(spec,rng){
   return cols;
 }
 
+/* ================= native shell (Capacitor) =================
+   Active only inside the store app (Android/iOS). On the website nothing here runs. */
+const NATIVE=!!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());
+const CP=NATIVE&&Capacitor.Plugins?Capacitor.Plugins:{};
+function nativeCall(fn){try{const r=fn();if(r&&r.catch)r.catch(()=>{})}catch(e){}}
+
 /* ================= save ================= */
 const SAVE_KEY='pixel-smena-v1';
 let SV={unl:1,stars:{},coins:200,snd:true,gal:[],tut:{},inv:{hint:3,hammer:1,slot:1}};
 try{const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');if(d&&typeof d==='object')SV=Object.assign(SV,d)}catch(e){}
-function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(SV))}catch(e){}}
+function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(SV))}catch(e){}if(NATIVE&&CP.Preferences)nativeCall(()=>CP.Preferences.set({key:SAVE_KEY,value:JSON.stringify(SV)}))}
+if(NATIVE&&CP.Preferences){try{if(!localStorage.getItem(SAVE_KEY))nativeCall(()=>CP.Preferences.get({key:SAVE_KEY}).then(r=>{if(r&&r.value){localStorage.setItem(SAVE_KEY,r.value);location.reload()}}))}catch(e){}}
 
 /* ================= audio ================= */
 let AC=null;
@@ -477,7 +484,7 @@ const sfx={
   beat(){tone(72,.12,'sine',.28,48);tone(72,.1,'sine',.2,48,.17)},
   deny(){tone(180,.12,'square',.05,140)}
 };
-function vib(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
+function vib(p){try{if(NATIVE&&CP.Haptics){const ms=Array.isArray(p)?p.reduce((a,b,i)=>i%2?a:a+b,0):p;if(ms<=25)nativeCall(()=>CP.Haptics.impact({style:'LIGHT'}));else nativeCall(()=>CP.Haptics.vibrate({duration:Math.min(400,ms)}))}else navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
 
 /* ================= analytics =================
    Anonymous gameplay events (random player id, no personal data) -> Supabase table "events".
@@ -485,7 +492,7 @@ function vib(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
 const AN={url:'https://vajpghoztikbcnvfkxtp.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhanBnaG96dGlrYmNudmZreHRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODYyMDIsImV4cCI6MjEwNTQ2MjIwMn0.3OIKjC14WBKZmvftmptfNbhd2wtKXxCR5r3x1Lxk3TI'};
 const PID=(()=>{try{let p=localStorage.getItem('smena-pid');if(!p){p=(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2));localStorage.setItem('smena-pid',p);localStorage.setItem('smena-first',String(Date.now()))}return p}catch(e){return 'anon-'+Math.random().toString(36).slice(2)}})();
 const SID=Math.random().toString(36).slice(2,10);
-const PLAT=location.protocol==='file:'?'apk':((matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone)?'pwa':'web');
+const PLAT=NATIVE?Capacitor.getPlatform():location.protocol==='file:'?'apk':((matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone)?'pwa':'web');
 const DAY=(()=>{try{return Math.floor((Date.now()-Number(localStorage.getItem('smena-first')||Date.now()))/864e5)}catch(e){return 0}})();
 let AQ=[];try{AQ=JSON.parse(localStorage.getItem('smena-aq')||'[]')||[]}catch(e){AQ=[]}
 function aqSave(){try{localStorage.setItem('smena-aq',JSON.stringify(AQ))}catch(e){}}
@@ -988,6 +995,18 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(S&&!S.pau
 requestAnimationFrame(frame);
 renderMenu();
 loadSkin();
+if(NATIVE){
+  if(CP.StatusBar)nativeCall(()=>CP.StatusBar.hide());
+  if(CP.SplashScreen)nativeCall(()=>CP.SplashScreen.hide());
+  if(CP.App)nativeCall(()=>CP.App.addListener('backButton',()=>{
+    const open=['#ovHelp','#ovPause'].find(s=>!$(s).hidden);
+    if(open==='#ovHelp'){$('#helpOk').click();return}
+    if(open==='#ovPause'){$('#ovPause').hidden=true;showMenu();return}
+    if(S&&S.state==='play'){$('#pauseBtn').click();return}
+    if(S){showMenu();return}
+    nativeCall(()=>CP.App.minimizeApp());
+  }));
+}
 track('app_open',{unl:SV.unl,day:DAY,stars:Object.values(SV.stars).reduce((a,b)=>a+b,0)});
 
 /* hooks for automated playtesting */
@@ -1004,7 +1023,7 @@ window.PF={applySkinConfig,SKIN,levelSpec,genShooters,getLanes,lapSim,start:n=>{
 <script>
 (function(){
   var standalone=matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone;
-  if(standalone||!location.protocol.startsWith('http'))return;
+  if(standalone||!location.protocol.startsWith('http')||(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform()))return;
   try{if(localStorage.getItem('smena-install-x'))return}catch(e){}
   var box=document.getElementById('install'),txt=document.getElementById('installTxt'),btn=document.getElementById('installBtn');
   var ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
@@ -1017,6 +1036,6 @@ window.PF={applySkinConfig,SKIN,levelSpec,genShooters,getLanes,lapSim,start:n=>{
 })();
 </script>
 <script>
-if('serviceWorker' in navigator && location.protocol.startsWith('http')){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
+if('serviceWorker' in navigator && location.protocol.startsWith('http') && !(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform())){addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 </script>
 </body></html>

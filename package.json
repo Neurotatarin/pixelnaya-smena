@@ -1,0 +1,24 @@
+{
+  "name": "pixelnaya-smena",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pixelnaya Smena: web game packaged for App Store and Google Play with Capacitor",
+  "scripts": {
+    "prepare:android": "bash native/prepare.sh android",
+    "prepare:ios": "bash native/prepare.sh ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/haptics": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
+    "@capacitor/preferences": "^8.0.0",
+    "@capacitor/splash-screen": "^8.0.0",
+    "@capacitor/status-bar": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.0.0"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "appId": "com.pixelsmena.game",
+  "appName": "Пиксельная смена",
+  "webDir": "www",
+  "backgroundColor": "#9fb6ff",
+  "android": { "path": "native-android" },
+  "ios": { "path": "native-ios", "contentInset": "never" },
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 1200, "launchAutoHide": false, "backgroundColor": "#9fb6ff", "showSpinner": false }
+  }
+}
