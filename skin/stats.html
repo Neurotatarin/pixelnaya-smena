@@ -69,6 +69,12 @@ th:first-child,td:first-child,td.l,th.l{text-align:left}
     <div class="card"><h2>Продолжения после проигрыша</h2><div id="cont"></div></div>
     <div class="card"><h2>Откуда играют</h2><div id="plat"></div></div>
   </section>
+  <section class="card">
+    <h2>Игроки по никам</h2>
+    <p class="lead">Нажми на ник, чтобы увидеть его смены: время, звезды, победы и поражения.</p>
+    <div class="scroll"><table id="ptbl"></table></div>
+    <div id="pdet" style="margin-top:12px"></div>
+  </section>
   <section class="card help">
     <b>Как читать.</b> «Дошли» это сколько разных игроков хотя бы раз начали уровень. «Бросили здесь» это игроки, для которых этот уровень оказался последним и которые не заходили больше суток. Возврат D1 и D7 считается от тех, кто впервые зашел хотя бы день или неделю назад.
   </section>
@@ -94,6 +100,27 @@ async function load(){
     catch(e){$('#upd').textContent='Не удалось загрузить: '+e.message+'. База Supabase засыпает после недели без игроков, открой ее в панели Supabase, чтобы разбудить.';return}
   }
   render(d);
+  loadPlayers();
+}
+function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c])}
+function mmss(s){if(s==null)return '';s=+s;return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function rpcS(n,b){return fetch(AN.url+'/rest/v1/rpc/'+n,{method:'POST',headers:{apikey:AN.key,Authorization:'Bearer '+AN.key,'Content-Type':'application/json'},body:JSON.stringify(b||{})}).then(r=>r.ok?r.json():Promise.reject(r.status))}
+const PLN={web:'Браузер',pwa:'Иконка PWA',apk:'APK',android:'Android',ios:'iPhone'};
+async function loadPlayers(){
+  const T=$('#ptbl');if(!AN.url.startsWith('http')){T.innerHTML='';return}
+  try{const a=await rpcS('players_stats');
+    if(!a.length){T.innerHTML='<tr><td class="l muted">Пока никто не выбрал ник</td></tr>';return}
+    let h='<tr><th class="l">Ник</th><th>Звезды</th><th>Побед</th><th>Поражений</th><th>Дошел до</th><th>Сессий</th><th class="l">Откуда</th><th class="l">Был</th></tr>';
+    for(const p of a)h+='<tr class="pr" data-n="'+esc(p.nick)+'" style="cursor:pointer"><td class="l"><b style="color:var(--accent)">'+esc(p.nick)+'</b></td><td>'+p.stars+'</td><td>'+p.wins+'</td><td>'+p.losses+'</td><td>'+(p.max_lvl||'')+'</td><td>'+p.sessions+'</td><td class="l">'+esc(PLN[p.plat]||p.plat||'')+'</td><td class="l">'+new Date(p.last_seen).toLocaleString('ru-RU',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})+'</td></tr>';
+    T.innerHTML=h;T.querySelectorAll('tr.pr').forEach(r=>r.onclick=()=>loadDetail(r.dataset.n));
+  }catch(e){T.innerHTML='<tr><td class="l muted">Не удалось загрузить игроков</td></tr>'}
+}
+async function loadDetail(n){const D=$('#pdet');D.innerHTML='<div class="muted">Загрузка...</div>';
+  try{const a=await rpcS('player_detail',{p_nick:n});
+    let h='<h2 style="font-size:16px;margin:4px 0 8px">'+esc(n)+': смены</h2><div class="scroll"><table><tr><th>Смена</th><th>Попыток</th><th>Побед</th><th>Поражений</th><th>Лучшее время</th><th>Звезды</th><th>Бустеры</th><th>Продолжения</th></tr>';
+    for(const x of a)h+='<tr><td><b>'+x.lvl+'</b></td><td>'+x.starts+'</td><td>'+x.wins+'</td><td>'+x.losses+'</td><td>'+mmss(x.best_secs)+'</td><td>'+(x.stars==null?'':'★'.repeat(x.stars))+'</td><td>'+x.boosters+'</td><td>'+x.continues+'</td></tr>';
+    D.innerHTML=h+'</table></div>';D.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }catch(e){D.innerHTML='<div class="muted">Не удалось загрузить</div>'}
 }
 function tile(k,v,h){return `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="h">${h||''}</div></div>`}
 function render(d){
@@ -115,7 +142,7 @@ function render(d){
   const tr=k=>k.replace('hint','Подсказка').replace('hammer','Молот').replace('slot','+Место').replace('/ inv','· из запаса').replace('/ coins','· за монеты').replace('/ no_money','· не хватило монет');
   $('#boost').innerHTML=kv(d.boosters,tr);
   $('#cont').innerHTML=kv(d.continues,k=>({free:'Бесплатно (уровни 1-3)',ad:'Реклама',coins:'За монеты'})[k]||k);
-  $('#plat').innerHTML=kv(d.platforms,k=>({web:'Браузер',pwa:'Иконка на экране (PWA)',apk:'Android-приложение'})[k]||k);
+  $('#plat').innerHTML=kv(d.platforms,k=>({web:'Браузер',pwa:'Иконка на экране (PWA)',apk:'Android APK с сайта',android:'Приложение Android',ios:'Приложение iPhone'})[k]||k);
 }
 function bars(sel,data,o){
   const el=$(sel);if(!data.length){el.innerHTML='<div class="muted">Пока нет данных</div>';return}

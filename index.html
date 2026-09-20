@@ -56,6 +56,23 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .play .t1{font-family:var(--fd);font-weight:900;font-size:26px;text-align:left;line-height:1.05}
 .play .t2{display:block;font-weight:800;font-size:12px;letter-spacing:.1em;text-transform:uppercase;opacity:.65;margin-bottom:2px}
 .play .go{width:52px;height:52px;border-radius:50%;background:#fff;display:grid;place-items:center;flex:none;box-shadow:0 3px 0 rgba(0,0,0,.12)}
+.ov.fx{position:fixed;z-index:40}
+.nickin{width:100%;box-sizing:border-box;border:2px solid var(--edge);border-radius:14px;padding:12px 14px;font:800 18px var(--fd,system-ui);color:var(--ink);text-align:center;background:var(--panel-2);outline:none}
+.nickin:focus{border-color:#9b5cf0}
+.nerr{min-height:18px;font-size:13px;font-weight:800;color:var(--danger)}
+.menurow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.me{display:inline-flex;align-items:center;gap:6px;border:0;background:rgba(255,255,255,.55);color:var(--ink);font-weight:800;font-size:14px;padding:9px 14px;border-radius:999px;box-shadow:0 2px 0 var(--edge)}
+.tmr{font-weight:900;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.wtime{font-weight:800;font-size:14px;color:var(--muted);line-height:1.4}
+.prize{font-size:13px;font-weight:900;color:#4a2c00;background:linear-gradient(180deg,#ffe36b,#ffd02b);padding:5px 12px;border-radius:999px;box-shadow:0 2px 0 #eb9b00}
+.rk{width:100%;display:flex;flex-direction:column;gap:4px;max-height:46vh;overflow-y:auto}
+.rkr{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:var(--panel-2);font-weight:800;font-size:14px;color:var(--ink);text-align:left}
+.rkr.me{background:#fff3c4;box-shadow:inset 0 0 0 2px #ffd02b}
+.rkr .n{width:28px;font-weight:900;color:var(--muted);font-variant-numeric:tabular-nums}
+.rkr .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rkr .v{font-variant-numeric:tabular-nums;font-weight:900}
+.lvsel{display:flex;align-items:center;gap:8px;justify-content:center;font-weight:900;color:var(--ink)}
+.lvsel button{border:0;background:var(--panel-2);border-radius:10px;width:36px;height:36px;font:900 18px system-ui;color:var(--ink);box-shadow:0 2px 0 var(--edge)}
 .howto{border:0;background:rgba(255,255,255,.55);color:var(--ink);font-weight:800;font-size:14px;padding:9px 14px;border-radius:999px;align-self:flex-start;box-shadow:0 2px 0 var(--edge)}
 .tabs{display:flex;gap:6px;background:rgba(255,255,255,.45);padding:5px;border-radius:16px}
 .tab{flex:1;border:0;background:transparent;color:#4a4485;font-weight:800;font-size:15px;padding:10px;border-radius:12px}
@@ -154,7 +171,7 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
       <div class="pill" title="Картины"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3" fill="#ff7eb9"/><rect x="7" y="7" width="4" height="4" fill="#fff1d6"/><rect x="13" y="13" width="4" height="4" fill="#3f7cff"/></svg><span id="mGal">0</span></div>
     </div>
     <button class="play" id="playBtn"><span class="t1"><span class="t2">Следующая</span><span id="playLbl">Смена 1</span></span><span class="go"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z" fill="#ffc12e"/></svg></span></button>
-    <button class="howto" id="howBtn">Как играть, за 30 секунд</button>
+    <div class="menurow"><button class="howto" id="howBtn">Как играть, за 30 секунд</button><button class="howto" id="rankBtn">🏆 Рейтинги</button><button class="me" id="meBtn">Выбрать ник</button></div>
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" id="tabL" aria-selected="true">Смены</button>
       <button class="tab" role="tab" id="tabG" aria-selected="false">Галерея</button>
@@ -167,11 +184,32 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
     <p class="foot">Демо-сборка · уровни бесконечные, каждый проверен на проходимость генератором</p>
   </section>
 
+  <div class="ov fx" id="ovNick" hidden><div class="card">
+    <div class="eyebrow">Добро пожаловать</div>
+    <h2>Как тебя звать?</h2>
+    <p>Ник будет в рейтингах. От 3 до 16 символов: буквы, цифры, пробел, точка, дефис.</p>
+    <input class="nickin" id="nickIn" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Твой ник">
+    <div class="nerr" id="nickErr"></div>
+    <div class="row"><button class="btn primary" id="nickOk">Играть</button></div>
+  </div></div>
+
+  <div class="ov fx" id="ovRank" hidden><div class="card">
+    <div class="eyebrow">Рейтинги</div>
+    <div class="tabs" role="tablist" style="width:100%">
+      <button class="tab" role="tab" id="rkTabS" aria-selected="true">Звезды</button>
+      <button class="tab" role="tab" id="rkTabT" aria-selected="false">Время смены</button>
+    </div>
+    <div class="lvsel" id="rkLv" hidden><button id="rkPrev" aria-label="Предыдущая смена">‹</button><span id="rkLvT">Смена 1</span><button id="rkNext" aria-label="Следующая смена">›</button></div>
+    <div class="rk" id="rkList"></div>
+    <p id="rkMe" style="font-size:14px"></p>
+    <div class="row"><button class="btn ghost" id="rkNick">Сменить ник</button><button class="btn primary" id="rkClose">Закрыть</button></div>
+  </div></div>
+
   <!-- ============ GAME ============ -->
   <section class="screen" id="game" hidden>
     <div class="hud">
       <button class="iconbtn" id="pauseBtn" aria-label="Пауза"><svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.5" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.5" fill="currentColor"/></svg></button>
-      <div class="lvlbox"><div class="lvlrow"><span class="lvl" id="gLvl">Смена 1</span><span class="badge" id="gBadge" hidden>Сложно</span></div><div class="prog" title="Сколько картины уже сбито"><i id="gProg"></i></div></div>
+      <div class="lvlbox"><div class="lvlrow"><span class="lvl" id="gLvl">Смена 1</span><span class="badge" id="gBadge" hidden>Сложно</span><span class="tmr" id="gTime">0:00</span></div><div class="prog" title="Сколько картины уже сбито"><i id="gProg"></i></div></div>
       <div class="pill"><svg data-skin="coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#ffc12e"/><circle cx="12" cy="12" r="6.5" fill="none" stroke="#b8840f" stroke-width="2"/></svg><span id="gCoins">0</span></div>
       <button class="iconbtn" id="helpBtn" aria-label="Как играть"><svg viewBox="0 0 24 24"><text x="12" y="17.5" text-anchor="middle" font-size="16" font-weight="800" fill="currentColor" font-family="Nunito,system-ui,sans-serif">?</text></svg></button>
     </div>
@@ -189,6 +227,8 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
       <h2 id="winName">Котик</h2>
       <span class="new" id="winNew" hidden>Новая картина в галерее</span>
       <div class="stars" id="winStars"></div>
+      <div class="wtime" id="winTime"></div>
+      <span class="prize" id="winPrize" hidden></span>
       <div class="reward"><svg data-skin="coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#ffc12e"/><circle cx="12" cy="12" r="6.5" fill="none" stroke="#b8840f" stroke-width="2"/></svg><span id="winCoins">+0</span></div>
       <div class="row"><button class="btn ghost" id="winMenu">Меню</button><button class="btn primary" id="winNext">Дальше</button></div>
     </div></div>
@@ -217,6 +257,8 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
       <div class="step"><div class="sn">2</div><div><b>Внизу стрелки.</b> Цвет стрелка = цвет кубиков, которые он бьет. Число = сколько у него патронов. <span class="ball" style="background:#3f7cff">20</span> собьет до 20 синих.</div><img data-help="help_2" alt="" hidden></div>
       <div class="step"><div class="sn">3</div><div><b>Тапни стрелка.</b> Он проедет один круг по конвейеру вокруг картины и собьет только <b>крайние</b> кубики своего цвета. Внутренние закрыты, пока не снят слой снаружи: они темнее <span class="chip" style="background:#ffd23f"></span><span class="chip dim" style="background:#ffd23f"></span><br>«Подсказка» покажет прогноз над стрелками: <span class="tag" style="background:#2fcb82">собьет 12</span> отлично, <span class="tag" style="background:#9a93c4">нет целей</span> пока рано.</div><img data-help="help_3" alt="" hidden></div>
       <div class="step"><div class="sn">4</div><div><b>Патроны остались?</b> Стрелок сядет на скамейку и подождет. Тапни его снова, когда откроются его кубики. <b>Скамейка забилась = смена сорвана.</b></div><img data-help="help_4" alt="" hidden></div>
+      <div class="step"><div class="sn">5</div><div><b>Лихорадка.</b> Над картиной есть шкала «ЛИХОРАДКА». Каждый сбитый кубик ее наполняет, а если долго не стрелять, она сдувается. Заполнил: 6 секунд конвейер едет в 1,6 раза быстрее, и каждый сбитый кубик дает монеты. Запускай стрелков пачкой без пауз, чтобы ее поймать.</div></div>
+      <div class="step"><div class="sn">6</div><div><b>Время и рейтинги.</b> Время смены идет сверху. Проходи быстрее и собирай звезды: в «Рейтингах» видно, кто лучший. Побил свое время: +15 монет. Побил рекорд смены среди всех игроков: +100. Прошел смену первым: +30. Рекорды считаются без продолжений после проигрыша.</div></div>
       <div class="step"><div class="sn">!</div><div><b>Секрет:</b> смотри, какой цвет сейчас снаружи картины, и запускай стрелков этого цвета. Не уверен? Жми «Подсказку»: она подсветит лучшего стрелка, его цели и покажет прогноз у всех.</div></div>
     </div>
     <div class="row"><button class="btn primary" id="helpOk">Понятно, играть</button></div>
@@ -513,6 +555,48 @@ addEventListener('pagehide',()=>flush(true));
 document.addEventListener('visibilitychange',()=>{if(document.hidden)flush(true)});
 function progPct(){return S&&S.total?Math.round((1-S.left/S.total)*100):0}
 
+/* ================= nick, records, ratings ================= */
+function rpc(name,body){return fetch(AN.url+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:AN.key,...(AN.key.startsWith('ey')?{Authorization:'Bearer '+AN.key}:{}),'Content-Type':'application/json'},body:JSON.stringify(body||{})}).then(r=>r.ok?r.json():r.json().then(e=>Promise.reject(e&&e.message||r.status)))}
+function fmtT(s){s=Math.max(0,Math.round(s||0));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')}
+function escH(t){return String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c])}
+function nickOk(n){return /^[A-Za-zА-Яа-яЁё0-9_ .-]{3,16}$/.test(n)}
+function syncNick(){if(!SV.nick||!SV.nickPending||!AN.url.startsWith('http'))return;rpc('set_nick',{p_pid:PID,p_nick:SV.nick}).then(r=>{if(r&&r.ok){SV.nickPending=false;save();renderMe()}}).catch(()=>{})}
+function renderMe(){const b=$('#meBtn');if(b)b.textContent=SV.nick?'Игрок: '+SV.nick:'Выбрать ник'}
+function askNick(after){$('#ovNick').hidden=false;const inp=$('#nickIn');inp.value=SV.nick||'';$('#nickErr').textContent='';setTimeout(()=>inp.focus(),60);
+  $('#nickOk').onclick=()=>{ac();const n=inp.value.trim().replace(/\s+/g,' ');
+    if(!nickOk(n)){$('#nickErr').textContent='От 3 до 16 символов: буквы, цифры, пробел, точка, дефис';return}
+    $('#nickOk').disabled=true;$('#nickErr').textContent='Проверяю ник...';
+    const done=ok=>{$('#nickOk').disabled=false;if(!ok)return;SV.nick=n;save();renderMe();track('nick_set',{});$('#ovNick').hidden=true;if(after)after()};
+    if(!AN.url.startsWith('http')){SV.nickPending=true;done(true);return}
+    rpc('set_nick',{p_pid:PID,p_nick:n}).then(r=>{
+      if(r&&r.ok){SV.nickPending=false;done(true)}
+      else if(r&&r.err==='taken'){$('#nickErr').textContent='Этот ник уже занят, придумай другой';done(false)}
+      else{$('#nickErr').textContent='Такой ник не подходит';done(false)}
+    }).catch(()=>{SV.nickPending=true;done(true)});
+  };
+  inp.onkeydown=e=>{if(e.key==='Enter')$('#nickOk').click()};
+}
+let RK={tab:'s',lvl:1};
+function rankRow(i,nm,v,me){return '<div class="rkr'+(me?' me':'')+'"><span class="n">'+i+'</span><span class="nm">'+escH(nm)+(me?' (ты)':'')+'</span><span class="v">'+v+'</span></div>'}
+function loadRank(){const L=$('#rkList');L.innerHTML='<p>Загружаю...</p>';$('#rkMe').textContent='';
+  $('#rkLv').hidden=RK.tab!=='t';$('#rkLvT').textContent='Смена '+RK.lvl;
+  rpc('leaderboard',{p_lvl:RK.lvl,p_pid:PID}).then(d=>{
+    if(RK.tab==='s'){const a=d.stars_top||[];L.innerHTML=a.length?a.map(r=>rankRow(r.rank,r.nick,'★ '+r.stars,r.me)).join(''):'<p>Пока никого. Пройди смену и стань первым</p>';
+      const m=d.stars_me;$('#rkMe').textContent=m?('Твое место: '+m.rank+' из '+m.of+' · ★ '+m.stars+' · смен пройдено: '+m.lvls):'Пройди смену, чтобы попасть в рейтинг'}
+    else{const a=d.time_top||[];L.innerHTML=a.length?a.map(r=>rankRow(r.rank,r.nick,fmtT(r.secs),r.me)).join(''):'<p>Эту смену еще никто не прошел. Будь первым</p>';
+      const m=d.time_me;$('#rkMe').textContent=m?('Твое место: '+m.rank+' из '+m.of+' · лучшее время '+fmtT(m.secs)):'Пройди эту смену, чтобы попасть в рейтинг'}
+  }).catch(()=>{L.innerHTML='<p>Нет связи с рейтингом. Проверь интернет</p>'})}
+function showRank(tab,lvl){RK.tab=tab||RK.tab;RK.lvl=Math.max(1,lvl||RK.lvl||1);$('#rkTabS').setAttribute('aria-selected',RK.tab==='s');$('#rkTabT').setAttribute('aria-selected',RK.tab==='t');$('#ovRank').hidden=false;loadRank();track('rank_open',{tab:RK.tab,lvl:RK.lvl})}
+$('#rkTabS').onclick=()=>showRank('s');
+$('#rkTabT').onclick=()=>showRank('t');
+$('#rkPrev').onclick=()=>{if(RK.lvl>1){RK.lvl--;loadRank()}};
+$('#rkNext').onclick=()=>{RK.lvl++;loadRank()};
+$('#rkClose').onclick=()=>{$('#ovRank').hidden=true};
+$('#rkNick').onclick=()=>{$('#ovRank').hidden=true;askNick(()=>showRank())};
+$('#meBtn').onclick=()=>{ac();askNick()};
+$('#rankBtn').onclick=()=>{ac();showRank('s',Math.max(1,SV.unl-1))};
+function fetchRecord(n){if(!AN.url.startsWith('http')||!S)return;S.lbRec=undefined;rpc('leaderboard',{p_lvl:n,p_pid:PID}).then(d=>{if(S&&S.n===n)S.lbRec=d.record==null?null:d.record}).catch(()=>{})}
+
 /* ================= game state ================= */
 const cv=$('#cv'),ctx=cv.getContext('2d');
 let CW=0,CH=0,DPR=1,LY=null,S=null,uid=1;
@@ -540,6 +624,7 @@ function startLevel(n){
   else if(spec.hard)S.floats.push({x:CW/2,y:LY.oy+LY.bh/2+40,text:'СЛОЖНО',life:1.3,max:1.3,size:20,col:'#ff8a9a',vy:-10});
   tutorial('start');
   track('level_start',{lvl:n,tries:SV.tries[n],unl:SV.unl});
+  S.tShown=-1;fetchRecord(n);
   if(!SV.tut.help)showHelp();
 }
 
@@ -692,6 +777,7 @@ function doHammer(cx,cy){
 function update(dt){
   if(!S)return;
   S.t+=dt;
+  if(S.state==='play'){S.tPlay=S.t;const ts=Math.floor(S.t);if(ts!==S.tShown){S.tShown=ts;const e=document.getElementById('gTime');if(e)e.textContent=fmtT(ts)}}
   const k=1-Math.pow(.0008,dt);
   S.cols.forEach((col,c)=>col.forEach((sh,j)=>{const[x,y]=colPos(c,j);sh.x+=(x-sh.x)*k;sh.y+=(y-sh.y)*k}));
   S.bench.forEach((sh,i)=>{if(!sh)return;const[x,y]=benchPos(i);sh.x+=(x-sh.x)*k;sh.y+=(y-sh.y)*k});
@@ -932,10 +1018,16 @@ function onWin(){
   let st=S.cont?1:(S.benchMax<=t3?3:S.benchMax<=nb-1?2:1);
   let coins=10+st*10+Math.floor(S.coins);if(S.spec.boss)coins*=2;
   if(S.spec.boss){SV.inv.hint++;SV.inv.hammer++}
+  const secs=Math.max(1,Math.floor(S.tPlay||S.t));SV.best=SV.best||{};const pb=SV.best[S.n];let prize=0,prizeTxt='';
+  if(!S.cont&&SV.nick&&typeof S.lbRec==='number'&&secs<S.lbRec){prize=100;prizeTxt='Рекорд смены! Ты быстрее всех: +100'}
+  else if(!S.cont&&SV.nick&&S.lbRec===null){prize=30;prizeTxt='Ты первый прошел эту смену: +30'}
+  else if(pb&&secs<pb){prize=15;prizeTxt='Личный рекорд: +15'}
+  if(!pb||secs<pb)SV.best[S.n]=secs;
+  coins+=prize;
   SV.coins+=coins;SV.stars[S.n]=Math.max(SV.stars[S.n]||0,st);SV.unl=Math.max(SV.unl,S.n+1);
   let isNew=false;if(S.spec.sprite>=0&&!SV.gal.includes(S.spec.sprite)){SV.gal.push(S.spec.sprite);isNew=true}
   save();updCoins();sfx.win();toastEl.classList.add('hide');
-  track('level_win',{lvl:S.n,stars:st,secs:Math.round(S.t),tries:SV.tries&&SV.tries[S.n]||1,bench:S.benchMax,cont:S.cont,boost:!!S.boost});vib([30,50,30,50,60]);
+  track('level_win',{lvl:S.n,stars:st,secs,prize,tries:SV.tries&&SV.tries[S.n]||1,bench:S.benchMax,cont:S.cont,boost:!!S.boost});vib([30,50,30,50,60]);
   // confetti
   for(let i=0;i<70;i++)S.parts.push({x:CW/2,y:LY.oy+LY.bh/2,vx:(Math.random()-.5)*700,vy:-Math.random()*650-100,life:1.2+Math.random()*.8,c:PAL[LET[i%LET.length]],sz:5+Math.random()*5,rot:Math.random()*6,vr:(Math.random()-.5)*20});
   setTimeout(()=>{
@@ -946,6 +1038,10 @@ function onWin(){
     $('#winNew').hidden=!isNew;
     $('#winStars').innerHTML=[0,1,2].map(i=>starHTML(i<st)).join('');
     $('#winCoins').textContent='+'+coins;
+    $('#winPrize').hidden=!prize;$('#winPrize').textContent=prizeTxt;
+    const wn=S.n;$('#winTime').textContent='Время '+fmtT(secs)+(pb?' · лучшее было '+fmtT(pb):'');
+    if(SV.nick&&AN.url.startsWith('http')&&!S.cont)setTimeout(()=>rpc('leaderboard',{p_lvl:wn,p_pid:PID}).then(d=>{const m=d.time_me;if(m&&S&&S.n===wn&&!$('#ovWin').hidden)$('#winTime').textContent='Время '+fmtT(secs)+' · место '+m.rank+' из '+m.of+' в рейтинге смены'}).catch(()=>{}),1500);
+    else if(!SV.nick)$('#winTime').textContent+=' · выбери ник, чтобы попасть в рейтинг';
     $('#ovWin').hidden=false;
   },650);
 }
@@ -1007,7 +1103,9 @@ if(NATIVE){
     nativeCall(()=>CP.App.minimizeApp());
   }));
 }
-track('app_open',{unl:SV.unl,day:DAY,stars:Object.values(SV.stars).reduce((a,b)=>a+b,0)});
+track('app_open',{unl:SV.unl,day:DAY,stars:Object.values(SV.stars).reduce((a,b)=>a+b,0),nick:!!SV.nick});
+renderMe();syncNick();
+if(!SV.nick)setTimeout(()=>{if($('#ovHelp').hidden&&$('#game').hidden)askNick()},400);
 
 /* hooks for automated playtesting */
 window.PF={applySkinConfig,SKIN,levelSpec,genShooters,getLanes,lapSim,start:n=>{$('#menu').hidden=true;$('#game').hidden=false;startLevel(n)},get S(){return S},update,bestMove,launchCol,launchBench,SV:()=>SV,showMenu};
