@@ -616,7 +616,7 @@ $('#rkClose').onclick=()=>{$('#ovRank').hidden=true};
 $('#rkNick').onclick=()=>{$('#ovRank').hidden=true;askNick(()=>showRank())};
 $('#meBtn').onclick=()=>{ac();askNick()};
 $('#rankBtn').onclick=()=>{ac();showRank('s',Math.max(1,SV.unl-1))};
-function fetchRecord(n){if(!AN.url.startsWith('http')||!S)return;S.lbRec=undefined;rpc('leaderboard',{p_lvl:n,p_pid:PID}).then(d=>{if(S&&S.n===n)S.lbRec=d.record==null?null:d.record}).catch(()=>{})}
+function fetchRecord(n){if(!AN.url.startsWith('http')||!S)return;S.lbRec=undefined;S.lbMine=false;rpc('leaderboard',{p_lvl:n,p_pid:PID}).then(d=>{if(S&&S.n===n){S.lbRec=d.record==null?null:d.record;S.lbMine=!!(d.time_top||[]).some(r=>r.rank===1&&r.me)}}).catch(()=>{})}
 
 /* ================= game state ================= */
 const cv=$('#cv'),ctx=cv.getContext('2d');
@@ -1040,8 +1040,9 @@ function onWin(){
   let coins=10+st*10+Math.floor(S.coins);if(S.spec.boss)coins*=2;
   if(S.spec.boss){SV.inv.hint++;SV.inv.hammer++}
   const secs=Math.max(1,Math.floor(S.tPlay||S.t));SV.best=SV.best||{};const pb=SV.best[S.n];let prize=0,prizeTxt='';
-  if(!S.cont&&SV.nick&&typeof S.lbRec==='number'&&secs<S.lbRec){prize=100;prizeTxt='Рекорд смены! Ты быстрее всех: +100'}
+  if(!S.cont&&SV.nick&&typeof S.lbRec==='number'&&secs<S.lbRec&&!S.lbMine){prize=100;prizeTxt='Рекорд смены! Ты быстрее всех: +100'}
   else if(!S.cont&&SV.nick&&S.lbRec===null){prize=30;prizeTxt='Ты первый прошел эту смену: +30'}
+  else if(S.lbMine&&typeof S.lbRec==='number'&&secs<S.lbRec){prize=15;prizeTxt='Свой же рекорд смены побит: +15'}
   else if(pb&&secs<pb){prize=15;prizeTxt='Личный рекорд: +15'}
   if(!pb||secs<pb)SV.best[S.n]=secs;
   coins+=prize;
