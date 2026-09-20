@@ -64,6 +64,14 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .me{display:inline-flex;align-items:center;gap:6px;border:0;background:rgba(255,255,255,.55);color:var(--ink);font-weight:800;font-size:14px;padding:9px 14px;border-radius:999px;box-shadow:0 2px 0 var(--edge)}
 .tmr{font-weight:900;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
 .wtime{font-weight:800;font-size:14px;color:var(--muted);line-height:1.4}
+.prog.lose{max-width:none;width:100%;align-self:stretch;height:12px;border-radius:6px;background:#ece7fb;margin:12px 0 6px}
+.prog.lose i{border-radius:6px;background:linear-gradient(90deg,#ffae1a,#ff7a59);transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.stock{display:flex;gap:5px;justify-content:center;align-items:center;flex-wrap:wrap;padding:0 8px 2px}
+.stock b{display:flex;align-items:center;gap:4px;font:800 11px/1 var(--fb);background:#fff;border:1.5px solid #e4defa;border-radius:999px;padding:3px 7px;color:#4a4270}
+.stock b i{width:9px;height:9px;border-radius:3px;display:block}
+.stock b.lbl{background:none;border:none;color:#9a93c4;font-weight:700;font-size:10px;padding:3px 2px}
+.stock b.low{border-color:#ffae1a;color:#a35d00;background:#fff7e8}
+.stock b.dead{border-color:#ff5d73;color:#c62a44;background:#ffeef0}
 .prize{font-size:13px;font-weight:900;color:#4a2c00;background:linear-gradient(180deg,#ffe36b,#ffd02b);padding:5px 12px;border-radius:999px;box-shadow:0 2px 0 #eb9b00}
 .rk{width:100%;display:flex;flex-direction:column;gap:4px;max-height:46vh;overflow-y:auto}
 .rkr{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:var(--panel-2);font-weight:800;font-size:14px;color:var(--ink);text-align:left}
@@ -213,6 +221,7 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
       <div class="pill"><svg data-skin="coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#ffc12e"/><circle cx="12" cy="12" r="6.5" fill="none" stroke="#b8840f" stroke-width="2"/></svg><span id="gCoins">0</span></div>
       <button class="iconbtn" id="helpBtn" aria-label="Как играть"><svg viewBox="0 0 24 24"><text x="12" y="17.5" text-anchor="middle" font-size="16" font-weight="800" fill="currentColor" font-family="Nunito,system-ui,sans-serif">?</text></svg></button>
     </div>
+    <div class="stock" id="gStock"></div>
     <canvas id="cv"></canvas>
     <div class="boost">
       <button class="bbtn" id="bHint"><svg data-skin="icon_hint" viewBox="0 0 24 24"><path d="M12 2a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z" fill="#ffc12e"/><rect x="8.5" y="18.5" width="7" height="3" rx="1.2" fill="#8fa8bd"/></svg>Подсказка<span class="price">40</span></button>
@@ -235,9 +244,11 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 
     <div class="ov" id="ovLose" hidden><div class="card">
       <div class="eyebrow" style="color:var(--danger)">Смена сорвана</div>
-      <h2>Скамейка забита</h2>
-      <p>Стрелку с патронами некуда встать. Добавь место и доиграй, картина никуда не делась.</p>
-      <div class="row col"><button class="btn primary" id="loseAd">Смотреть рекламу: +1 место</button><button class="btn ghost" id="loseCont">+1 место за 150 монет</button><button class="btn ghost" id="loseRetry">Начать смену заново</button></div>
+      <h2 id="loseTtl">Патронов не хватило</h2>
+      <p id="loseTxt">Патроны этого цвета сгорели раньше, чем кубики закончились.</p>
+      <div class="prog lose"><i id="loseProg"></i></div>
+      <p class="small" id="losePct" style="margin:0 0 10px"></p>
+      <div class="row col"><button class="btn primary" id="loseAd">Смотреть рекламу: добрать патроны</button><button class="btn ghost" id="loseCont">Добрать патроны за 150 монет</button><button class="btn ghost" id="loseRetry">Начать смену заново</button></div>
     </div></div>
 
     <div class="ov" id="ovAd" hidden><div class="card"><div class="eyebrow">Реклама · демо</div><h2 id="adT">3</h2><p>Здесь будет ролик рекламодателя. В демо просто подожди пару секунд, место добавится само.</p></div></div>
@@ -255,8 +266,9 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
     <div class="steps">
       <div class="step"><div class="sn">1</div><div><b>Картина из кубиков.</b> Твоя цель: снести их все, до последнего.</div><img data-help="help_1" alt="" hidden></div>
       <div class="step"><div class="sn">2</div><div><b>Внизу стрелки.</b> Цвет стрелка = цвет кубиков, которые он бьет. Число = сколько у него патронов. <span class="ball" style="background:#3f7cff">20</span> собьет до 20 синих.</div><img data-help="help_2" alt="" hidden></div>
-      <div class="step"><div class="sn">3</div><div><b>Тапни стрелка.</b> Он проедет один круг по конвейеру вокруг картины и собьет только <b>крайние</b> кубики своего цвета. Внутренние закрыты, пока не снят слой снаружи: они темнее <span class="chip" style="background:#ffd23f"></span><span class="chip dim" style="background:#ffd23f"></span><br>«Подсказка» покажет прогноз над стрелками: <span class="tag" style="background:#2fcb82">собьет 12</span> отлично, <span class="tag" style="background:#9a93c4">нет целей</span> пока рано.</div><img data-help="help_3" alt="" hidden></div>
-      <div class="step"><div class="sn">4</div><div><b>Патроны остались?</b> Стрелок сядет на скамейку и подождет. Тапни его снова, когда откроются его кубики. <b>Скамейка забилась = смена сорвана.</b></div><img data-help="help_4" alt="" hidden></div>
+      <div class="step"><div class="sn">3</div><div><b>Тапни стрелка.</b> Он проедет один круг по конвейеру вокруг картины и собьет только <b>крайние</b> кубики своего цвета. Внутренние закрыты, пока не снят слой снаружи: они темнее <span class="chip" style="background:#ffd23f"></span><span class="chip dim" style="background:#ffd23f"></span><br>Над каждым стрелком всегда виден прогноз: <span class="tag" style="background:#2fcb82">собьет 12</span> отлично, <span class="tag" style="background:#9a93c4">нет целей</span> пока рано. Смотри на него перед каждым тапом.</div><img data-help="help_3" alt="" hidden></div>
+      <div class="step"><div class="sn">4</div><div><b>Один круг и все.</b> Стрелок проезжает круг и уходит навсегда. Неистраченные патроны сгорают. Наверху виден запас по каждому цвету: <b>осталось кубиков · патроны</b>. Если патронов стало меньше, чем кубиков, смену уже не закрыть. Поэтому не пускай стрелка, когда его цвет закрыт.</div><img data-help="help_4" alt="" hidden></div>
+      <div class="step"><div class="sn">5</div><div><b>Скамейка.</b> Потяни стрелка вниз пальцем, и он сядет на скамейку целым, со всеми патронами. Дождись, когда откроется его цвет, и тапни по нему. Мест мало, занимай их с умом.</div></div>
       <div class="step"><div class="sn">5</div><div><b>Лихорадка.</b> Над картиной есть шкала «ЛИХОРАДКА». Каждый сбитый кубик ее наполняет, а если долго не стрелять, она сдувается. Заполнил: 6 секунд конвейер едет в 1,6 раза быстрее, и каждый сбитый кубик дает монеты. Запускай стрелков пачкой без пауз, чтобы ее поймать.</div></div>
       <div class="step"><div class="sn">6</div><div><b>Время и рейтинги.</b> Время смены идет сверху. Проходи быстрее и собирай звезды: в «Рейтингах» видно, кто лучший. Побил свое время: +15 монет. Побил рекорд смены среди всех игроков: +100. Прошел смену первым: +30. Рекорды считаются без продолжений после проигрыша.</div></div>
       <div class="step"><div class="sn">!</div><div><b>Секрет:</b> смотри, какой цвет сейчас снаружи картины, и запускай стрелков этого цвета. Не уверен? Жми «Подсказку»: она подсветит лучшего стрелка, его цели и покажет прогноз у всех.</div></div>
@@ -401,7 +413,12 @@ function levelSpec(n){
   const rng=rngOf(n*2654435761^0x9e3779b9);
   const boss=n%10===0,hard=!boss&&n%5===0;
   let cols=n<=2?2:n<=10?3:4;if(hard)cols=Math.min(5,cols+1);
-  let bench=n<=2?5:4;if(hard)bench=3;
+  let bench=n<=2?5:n<=12?4:3;
+  const easy=n<=12||(n<=25&&n%2===1)||(n<=45&&n%4===1);
+  const zone=easy?{win:true,sMin:1.4,sMax:1.9,target:0,tries:14}
+    :n<=25?{win:false,sMin:1.15,sMax:1.45,target:.88,tries:16}
+    :n<=45?{win:false,sMin:1.05,sMax:1.3,target:.9,tries:16}
+    :{win:false,sMin:1,sMax:1.2,target:.92,tries:16};
   const ramp=Math.min(1,Math.max(0,(n-2)/28)),tough=hard||boss;
   const diff=n<=2?{block:0,two:0,cap:0}:{block:tough?.34:.14+.2*ramp,two:tough?.3:.12+.18*ramp,cap:bench-(tough?0:(n<=6?2:1)),minB:tough?2:1};
   let pic;
@@ -416,10 +433,11 @@ function levelSpec(n){
     const slot=spriteSlot(n);const si=slot%SP.length,cycle=Math.floor(slot/SP.length);
     pic=spritePic(si,rng,cycle,boss?3:(n<14?1:2),n>=8&&!boss,boss);
   }
-  const spec=Object.assign({n,boss,hard,cols,bench,diff},pic);
+  const spec=Object.assign({n,boss,hard,cols,bench,diff,zone},pic);
   specCache.set(n,spec);return spec;
 }
 
+const NAMES={r:'красного',o:'оранжевого',y:'желтого',g:'зеленого',t:'бирюзового',b:'синего',p:'фиолетового',k:'розового',w:'белого',n:'коричневого',d:'темно-синего'};
 /* ================= core rules ================= */
 const laneCache=new Map();
 function getLanes(W,H){
@@ -448,44 +466,100 @@ function lapSim(g,W,H,lanes,c,ammo){
 }
 /* builds a launch order that clears the board with an empty bench, then deals it into columns:
    every column is a subsequence of that order, so the level is always solvable */
-function genShooters(spec,rng){
-  /* Builds a reference playthrough and deals its launch order into columns (every column is a
-     subsequence of it), so a solution always exists. Harder levels add "blockers" (shooters whose
-     colour is still hidden: they must be parked on the bench) and "two-lap" shooters (more ammo than
-     one lap can use). The reference never uses more than D.cap bench seats. */
-  const {W,H}=spec,lanes=getLanes(W,H),D=spec.diff||{block:0,two:0,cap:0};
-  const nice=(r,u)=>{if(u<=12)return u;const m=Math.min(20,u);return 5*(1+Math.floor(r()*Math.max(1,Math.floor(m/5))))};
-  let seq=null;
-  for(let att=0;att<60&&!seq;att++){
-    const g=spec.cells.slice(),un={};let left=0;
-    for(const c of g)if(c){un[c]=(un[c]||0)+1;left++}
-    const out=[],bench=[],hard=att<40;let guard=0;
-    while(left>0&&guard++<6000){
-      let did=false;
-      for(let i=0;i<bench.length;i++){const b=bench[i];const h=lapSim(g.slice(),W,H,lanes,b.c,b.a);if(h>0){lapSim(g,W,H,lanes,b.c,b.a);b.a-=h;left-=h;if(b.a<=0)bench.splice(i,1);did=true;break}}
-      if(did)continue;
-      const cand=[];let sum=0;
-      for(const c in un){if(un[c]<=0)continue;const h=lapSim(g.slice(),W,H,lanes,c,1e9);if(h>0){const w=h*h;cand.push([c,h,w]);sum+=w}}
-      const hidden=Object.keys(un).filter(c=>un[c]>0&&!cand.some(x=>x[0]===c));
-      if(hard&&hidden.length&&bench.length<D.cap&&rng()<D.block){
-        const c=hidden[Math.floor(rng()*hidden.length)],A=Math.min(un[c],nice(rng,un[c]));
-        un[c]-=A;out.push({c,a:A,ord:out.length,blk:1});bench.push({c,a:A});continue;
-      }
-      if(!cand.length)break;
-      let r=rng()*sum,pick=cand[0];for(const x of cand){r-=x[2];if(r<=0){pick=x;break}}
-      const [c,h]=pick;let A=Math.min(h,un[c]);
-      if(A>=10&&un[c]-A>=3)A=Math.floor(A/5)*5;
-      if(hard&&un[c]-A>0&&bench.length<D.cap&&rng()<D.two)A+=Math.min(un[c]-A,2+Math.floor(rng()*6));
-      const hits=lapSim(g,W,H,lanes,c,A);
-      un[c]-=A;left-=hits;out.push({c,a:A,ord:out.length});
-      if(A>hits)bench.push({c,a:A-hits});
-    }
-    if(left===0&&(!hard||out.filter(o=>o.blk).length>=(D.minB||0)))seq=out;
+function refPlay(spec,lanes){
+  const W=spec.W,H=spec.H,g=spec.cells.slice();
+  const seq=[];let left=0;for(const c of g)if(c)left++;let guard=0;
+  while(left>0&&guard++<3000){
+    const cs={};for(const c of g)if(c)cs[c]=1;
+    let best=null,bh=0;
+    for(const c in cs){const h=lapSim(g.slice(),W,H,lanes,c,1e9);if(h>bh){bh=h;best=c}}
+    if(!best)return null;
+    lapSim(g,W,H,lanes,best,bh);left-=bh;seq.push({c:best,a:bh});
   }
-  const K=spec.cols,cols=Array.from({length:K},()=>[]);
-  if(spec.n<=2)seq.forEach((s,i)=>cols[i%K].push(s));
-  else for(const s of seq){const mn=Math.min(...cols.map(c=>c.length));const ok=cols.filter(c=>c.length<=mn+1);ok[Math.floor(rng()*ok.length)].push(s)}
+  return left===0?seq:null;
+}
+function dealSeq(seq,K,rng){
+  const cols=Array.from({length:K},()=>[]);
+  for(const s of seq){const mn=Math.min(...cols.map(c=>c.length));const ok=cols.filter(c=>c.length<=mn+1);ok[Math.floor(rng()*ok.length)].push(s)}
   return cols;
+}
+function smartWin(spec,lanes,cols0,order){
+  const W=spec.W,H=spec.H,g=spec.cells.slice();
+  const cols=cols0.map(c=>c.slice());
+  let left=0;for(const c of g)if(c)left++;
+  for(const want of order){
+    let k=-1;for(let i=0;i<cols.length;i++)if(cols[i][0]&&cols[i][0].id===want.id){k=i;break}
+    if(k<0)return false;
+    const sh=cols[k].shift();
+    left-=lapSim(g,W,H,lanes,sh.c,sh.a);
+  }
+  return left===0;
+}
+function stockOf(cols,bench,extra){
+  const st={};const add=x=>{if(x&&x.a>0)st[x.c]=(st[x.c]||0)+x.a};
+  for(const col of cols)for(const x of col)add(x);
+  for(const x of bench)add(x);
+  if(extra)for(const x of extra)add(x);
+  return st;
+}
+function pixCount(g){const p={};for(const c of g)if(c)p[c]=(p[c]||0)+1;return p}
+function shortColor(g,st){const p=pixCount(g);for(const c in p)if((st[c]||0)<p[c])return c;return null}
+function greedyPlay(spec,lanes,cols0,benchN){
+  const W=spec.W,H=spec.H,g=spec.cells.slice();
+  const cols=cols0.map(c=>c.map(x=>({c:x.c,a:x.a})));
+  const bench=[];let total=0;for(const c of g)if(c)total++;let left=total,guard=0;
+  while(left>0&&guard++<3000){
+    if(shortColor(g,stockOf(cols,bench)))return{win:false,pct:1-left/total};
+    const heads=[];cols.forEach((c,k)=>{if(c[0])heads.push([c[0],k])});bench.forEach(x=>heads.push([x,-1]));
+    if(!heads.length)return{win:false,pct:1-left/total};
+    let best=null,bk=-1,bh=-1;
+    for(const hk of heads){const h=lapSim(g.slice(),W,H,lanes,hk[0].c,hk[0].a);if(h>bh){bh=h;best=hk[0];bk=hk[1]}}
+    if(bh<=0&&bk>=0&&bench.length<benchN){cols[bk].shift();bench.push(best);continue}
+    if(bk>=0)cols[bk].shift();else bench.splice(bench.indexOf(best),1);
+    if(bh>0)left-=lapSim(g,W,H,lanes,best.c,best.a);
+  }
+  return{win:left===0,pct:1-left/total};
+}
+function humanPlay(spec,lanes,cols0,benchN){
+  const W=spec.W,H=spec.H,g=spec.cells.slice();
+  const cols=cols0.map(c=>c.map(x=>({c:x.c,a:x.a})));
+  const bench=[];let total=0;for(const c of g)if(c)total++;let left=total,guard=0,parked=0;
+  while(left>0&&guard++<4000){
+    if(shortColor(g,stockOf(cols,bench)))return{win:false,pct:1-left/total};
+    const heads=[];cols.forEach((c,k)=>{if(c[0])heads.push([c[0],k])});bench.forEach(x=>heads.push([x,-1]));
+    if(!heads.length)return{win:false,pct:1-left/total};
+    const info=heads.map(hk=>{const h=lapSim(g.slice(),W,H,lanes,hk[0].c,hk[0].a);return{sh:hk[0],k:hk[1],h,w:hk[0].a-h}});
+    const live=info.filter(x=>x.h>0).sort((a,b)=>b.h-a.h||a.w-b.w);
+    const idle=info.filter(x=>x.h===0&&x.k>=0).sort((a,b)=>b.sh.a-a.sh.a);
+    if(idle.length&&bench.length<benchN&&parked<benchN*2){
+      const q=idle[0];cols[q.k].shift();bench.push(q.sh);parked++;continue;
+    }
+    let pick=live[0];
+    if(!pick)pick=info.slice().sort((a,b)=>a.sh.a-b.sh.a)[0];
+    if(pick.k>=0)cols[pick.k].shift();else bench.splice(bench.indexOf(pick.sh),1);
+    if(pick.h>0){left-=lapSim(g,W,H,lanes,pick.sh.c,pick.sh.a);parked=0}
+  }
+  return{win:left===0,pct:1-left/total};
+}
+function genShooters(spec,rng){
+  const lanes=getLanes(spec.W,spec.H),Z=spec.zone;
+  const ref=refPlay(spec,lanes);
+  if(!ref)return Array.from({length:spec.cols},()=>[]);
+  let best=null,bs=-1e9,safe=null;
+  for(let t=0;t<Z.tries;t++){
+    const sp=Z.sMin+(Z.sMax-Z.sMin)*(t%6)/5;
+    const seq=ref.map((x,i)=>({c:x.c,a:Math.max(1,Math.ceil(x.a*sp)),ord:i,id:i}));
+    const cols=dealSeq(seq,spec.cols,rng);
+    if(!smartWin(spec,lanes,cols,seq))continue;
+    const hu=humanPlay(spec,lanes,cols,spec.bench);
+    if(!hu.win){if(!safe)safe=cols;continue}
+    const gr=greedyPlay(spec,lanes,cols,spec.bench);
+    const sc=Z.win?(gr.win?100-sp*10:0):((gr.win?0:100)-Math.abs(gr.pct-Z.target)*120);
+    if(sc>bs){bs=sc;best=cols}
+  }
+  if(best)return best;
+  if(safe)return safe;
+  return dealSeq(ref.map((x,i)=>({c:x.c,a:Math.max(1,Math.ceil(x.a*Z.sMax)),ord:i,id:i})),spec.cols,rng);
 }
 
 /* ================= native shell (Capacitor) =================
@@ -754,10 +828,21 @@ function explode(cell,c,big){
 }
 function endLap(sh){
   sh.on=false;
-  if(sh.a<=0){poof(sh.x,sh.y,sh.c);sfx.poof();return}
-  const i=S.bench.indexOf(null);
-  if(i>=0){S.bench[i]=sh;sh.sq=1;S.aimT=0;sfx.bench();S.benchMax=Math.max(S.benchMax,S.bench.filter(Boolean).length);tutorial('bench')}
-  else{S.over=sh;S.state='lose';S.loseT=.55;sfx.lose();vib([60,40,60]);S.shake=.4}
+  if(sh.a>0){S.burn=(S.burn||0)+sh.a;S.floats.push({x:sh.x,y:sh.y,text:'-'+sh.a,life:.9,max:.9,size:17,col:'#ff8a9a',vy:-45});tutorial('burn')}
+  sh.a=0;poof(sh.x,sh.y,sh.c);sfx.poof();S.aimT=0;checkDead();
+}
+function checkDead(){
+  if(!S||S.state!=='play')return false;
+  const st=stockOf(S.cols,S.bench,S.belt.concat(S.wait));
+  const c=shortColor(S.g,st);
+  if(c){S.short=c;S.state='lose';S.loseT=.55;sfx.lose();vib([60,40,60]);S.shake=.4;return true}
+  return false;
+}
+function parkCol(k){
+  const col=S.cols[k];if(!col||!col.length)return false;
+  const i=S.bench.indexOf(null);if(i<0)return false;
+  const sh=col.shift();S.bench[i]=sh;sh.sq=1;S.aimT=0;sfx.bench();
+  S.benchMax=Math.max(S.benchMax,S.bench.filter(Boolean).length);tutorial('bench');return true;
 }
 function poof(x,y,c){for(let i=0;i<10;i++){const a=i/10*Math.PI*2;S.parts.push({x,y,vx:Math.cos(a)*120,vy:Math.sin(a)*120,life:.35,c:'#ffffff',sz:4,rot:0,vr:0,g:0,star:1})}}
 function bestMove(){
@@ -824,9 +909,12 @@ function update(dt){
   for(let i=S.floats.length-1;i>=0;i--){const f=S.floats[i];f.life-=dt;f.y+=f.vy*dt;if(f.life<=0)S.floats.splice(i,1)}
   if(S.shake>0)S.shake=Math.max(0,S.shake-dt);
   if(S.hint){S.hintT-=dt;if(S.hintT<=0)S.hint=null}
-  if(S.hintAimT>0)S.hintAimT-=dt;S.aimAll=S.n<=1||S.hintAimT>0;
+  if(S.hintAimT>0)S.hintAimT-=dt;S.aimAll=true;
   if(S.state==='play'){const free=S.bench.filter(x=>!x).length;if(free<=1&&S.bench.some(Boolean)){S.hbT-=dt;if(S.hbT<=0){S.hbT=free===0?.55:.85;sfx.beat()}}else S.hbT=0}
   S.aimT-=dt;if(S.aimT<=0){S.aimT=.15;S.aim={};const q=[...S.cols.map(c=>c[0]),...S.bench];for(const sh of q)if(sh)S.aim[sh.id]=lapSim(S.g.slice(),S.W,S.H,S.lanes,sh.c,sh.a)}
+  if(S.state==='play'){const st=stockOf(S.cols,S.bench,S.belt.concat(S.wait)),p=pixCount(S.g);
+    const key=Object.keys(p).sort().map(c=>c+':'+p[c]+'/'+(st[c]||0)).join(',');
+    if(key!==S.stockKey){S.stockKey=key;renderStock(p,st)}}
   const sqd=dt*3.2;for(const col of S.cols)for(const sh of col)if(sh.sq)sh.sq=Math.max(0,sh.sq-sqd);for(const sh of S.bench)if(sh&&sh.sq)sh.sq=Math.max(0,sh.sq-sqd);for(const sh of S.wait)if(sh.sq)sh.sq=Math.max(0,sh.sq-sqd);for(const sh of S.belt)if(sh.sq)sh.sq=Math.max(0,sh.sq-sqd);
   const pr=Math.round((1-S.left/S.total)*100);if(pr!==S.progShown){S.progShown=pr;const pe=document.getElementById('gProg');if(pe)pe.style.width=pr+'%'}
   const fe=S.feverT>0;if(fe!==S.fevOn){S.fevOn=fe;document.getElementById('game').classList.toggle('fever',fe)}
@@ -834,7 +922,7 @@ function update(dt){
   if(S.state==='play'&&S.left===0&&S.proj.length===0){S.state='winwait';S.winT=.8}
   if(S.state==='winwait'){S.winT-=dt;if(S.winT<=0){S.state='won';onWin()}}
   if(S.state==='lose'&&S.loseT>0){S.loseT-=dt;if(S.loseT<=0)showLose()}
-  if(S.state==='play'&&!S.belt.length&&!S.wait.length&&!S.proj.length&&!S.bench.includes(null)){const q=[...S.cols.map(c=>c[0]),...S.bench].filter(Boolean);if(q.length&&q.every(sh=>S.aim[sh.id]===0)){S.over=null;S.state='lose';S.loseT=.4;sfx.lose();vib([60,40,60])}}
+  if(S.state==='play'&&!S.belt.length&&!S.wait.length&&!S.proj.length){const q=[...S.cols.map(c=>c[0]),...S.bench].filter(Boolean);if(!q.length&&S.left>0){S.state='lose';S.loseT=.4;sfx.lose();vib([60,40,60])}}
 }
 
 /* ================= draw ================= */
@@ -972,8 +1060,16 @@ cv.addEventListener('pointerdown',e=>{
     return;
   }
   for(let i=0;i<S.bench.length;i++){if(!S.bench[i])continue;const[bx,by]=benchPos(i);if(Math.hypot(x-bx,y-by)<LY.slot*.55){launchBench(i);return}}
-  for(let k=0;k<S.cols.length;k++){if(!S.cols[k].length)continue;const[cx,cy]=colPos(k,0);if(Math.hypot(x-cx,y-cy)<LY.ru*1.35){launchCol(k);return}}
+  for(let k=0;k<S.cols.length;k++){if(!S.cols[k].length)continue;const[cx,cy]=colPos(k,0);if(Math.hypot(x-cx,y-cy)<LY.ru*1.35){S.drag={k,x,y,t:S.t};return}}
 });
+cv.addEventListener('pointerup',e=>{
+  if(!S||S.state!=='play'||S.paused||!S.drag)return;
+  const d=S.drag;S.drag=null;
+  const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+  if(y-d.y>LY.ru*1.1){if(!parkCol(d.k))toast('Скамейка занята. Освободи место или запусти стрелка',2600);return}
+  launchCol(d.k);
+});
+cv.addEventListener('pointercancel',()=>{if(S)S.drag=null});
 
 /* ================= UI ================= */
 const toastEl=$('#toast');let toastTimer=0;
@@ -984,12 +1080,22 @@ function tutorial(ev){
   if(ev==='start'){
     if(n===1)once('t1','Начни с подсвеченного стрелка: снаружи картины сейчас синие кубики',6000);
     else if(n===2)once('t2','Внутренние кубики закрыты. Смотри, какой цвет сейчас снаружи картины, и запускай стрелков этого цвета',6000);
-    else if(n===3)once('t3','Бывает, нужный стрелок стоит за лишним. Отправь лишнего на скамейку, он пригодится, когда откроется его цвет. Только не забей скамейку',7000);
+    else if(n===3)once('t3','На стрелке видно, сколько он собьет прямо сейчас. Если мало, потяни его вниз и отложи на скамейку до лучшего момента',7000);
     else if(S.spec.hard)once('th','Сложная смена: на скамейке меньше мест, думай перед каждым тапом',5000);
     else if(S.spec.boss)once('tb','Босс: большая картина в трех рамках. Чисти слоями',5000);
   }
-  if(ev==='bench'&&n<=6)once('tbench','Патроны остались, стрелок ждет на скамейке. Тапни, чтобы отправить его на новый круг. Забьешь все места и смена сорвется',6500);
+  if(ev==='bench'&&n<=8)once('tbench','Стрелок ждет на скамейке. Тапни по нему, когда откроется его цвет. Мест всего несколько, занимай их с умом',6500);
+  if(ev==='burn')once('tburn','Стрелок делает один круг и уходит. Неистраченные патроны сгорают. Запас по каждому цвету виден наверху',7000);
   if(ev==='fever')once('tfever','Лихорадка: конвейер ускорен, каждый кубик приносит монеты',4500);
+}
+function renderStock(p,st){
+  const el=document.getElementById('gStock');if(!el)return;
+  const cs=Object.keys(p).sort((a,b)=>p[b]-p[a]);
+  if(!cs.length){el.innerHTML='';return}
+  el.innerHTML='<b class="lbl">осталось · патроны</b>'+cs.map(c=>{
+    const have=st[c]||0,need=p[c];
+    const cl=have<need?' class="dead"':(have-need<=2?' class="low"':'');
+    return '<b'+cl+'><i style="background:'+PAL[c]+'"></i>'+need+' · '+have+'</b>'}).join('');
 }
 function updCoins(){$('#gCoins').textContent=SV.coins;$('#mCoins').textContent=SV.coins}
 function setHammer(on){if(S)S.hammer=on;$('#bHammer').classList.toggle('on',on)}
@@ -1011,13 +1117,31 @@ $('#pMenu').onclick=()=>{showMenu()};
 $('#pSnd').onclick=()=>{SV.snd=!SV.snd;save();$('#pSnd').textContent='Звук: '+(SV.snd?'вкл':'выкл');chipSync()};
 
 function showLose(){toastEl.classList.add('hide');
-  track('level_lose',{lvl:S.n,secs:Math.round(S.t),prog:progPct(),reason:S.over?'bench':'stuck',cont:S.cont});
+  const pct=progPct();
+  track('level_lose',{lvl:S.n,secs:Math.round(S.t),prog:pct,reason:S.short?'ammo':'stuck',burn:S.burn||0,cont:S.cont});
+  const nm=S.short?(NAMES[S.short]||'этого цвета'):null;
+  $('#loseTtl').textContent=S.short?'Патронов не хватило':'Стрелки закончились';
+  $('#loseTxt').textContent=S.short
+    ?('Кубиков '+nm+' осталось больше, чем патронов. Часть патронов сгорела впустую.')
+    :'Стрелки закончились, а картина еще не собрана.';
+  const e=$('#loseProg');if(e)e.style.width='0%';
+  setTimeout(()=>{const q=$('#loseProg');if(q)q.style.width=pct+'%'},60);
+  $('#losePct').textContent='Картина собрана на '+pct+'%, осталось кубиков: '+S.left;
   const free=S.n<=3&&!S.cont;
   $('#loseAd').hidden=free;
-  $('#loseCont').textContent=free?'+1 место и дальше (бесплатно)':'+1 место за 150 монет';
+  $('#loseCont').textContent=free?'Добрать патроны и дальше (бесплатно)':'Добрать патроны за 150 монет';
   $('#ovLose').hidden=false;
 }
-function contRun(via){track('continue',{lvl:S.n,via:via||'coins'});S.cont=true;S.bench.push(S.over);S.over=null;S.state='play';layout();$('#ovLose').hidden=true}
+function contRun(via){
+  track('continue',{lvl:S.n,via:via||'coins'});
+  S.cont=true;
+  const st=stockOf(S.cols,S.bench,S.belt.concat(S.wait)),p=pixCount(S.g);
+  for(const c in p){
+    const need=p[c]-(st[c]||0);
+    if(need>0){const sh=mk({c,a:need+2,ord:9999});const i=S.bench.indexOf(null);if(i>=0)S.bench[i]=sh;else S.bench.push(sh)}
+  }
+  S.short=null;S.over=null;S.state='play';S.aimT=0;layout();$('#ovLose').hidden=true;
+}
 $('#loseCont').onclick=()=>{
   const free=S.n<=3&&!S.cont;
   if(!free){if(SV.coins<150){deny($('#loseCont'),'Не хватает монет');return}SV.coins-=150;save();updCoins()}
@@ -1035,8 +1159,8 @@ function drawPic(cnv,spec,silhouette){
   for(let i=0;i<spec.cells.length;i++){const c=spec.cells[i];if(!c)continue;g.fillStyle=silhouette?'#d9d0f5':PAL[c];g.fillRect(offx+(i%spec.W)*px,offy+Math.floor(i/spec.W)*px,px,px)}
 }
 function onWin(){
-  const nb=S.nb0,t3=Math.floor(nb*.5);
-  let st=S.cont?1:(S.benchMax<=t3?3:S.benchMax<=nb-1?2:1);
+  const waste=S.burn||0,w2=Math.ceil(S.total*.1);
+  let st=S.cont?1:(waste===0?3:waste<=w2?2:1);
   let coins=10+st*10+Math.floor(S.coins);if(S.spec.boss)coins*=2;
   if(S.spec.boss){SV.inv.hint++;SV.inv.hammer++}
   const secs=Math.max(1,Math.floor(S.tPlay||S.t));SV.best=SV.best||{};const pb=SV.best[S.n];let prize=0,prizeTxt='';
