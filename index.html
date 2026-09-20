@@ -197,8 +197,10 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
       <div class="eyebrow" style="color:var(--danger)">Смена сорвана</div>
       <h2>Скамейка забита</h2>
       <p>Стрелку с патронами некуда встать. Добавь место и доиграй, картина никуда не делась.</p>
-      <div class="row col"><button class="btn primary" id="loseCont">+1 место и дальше</button><button class="btn ghost" id="loseRetry">Начать смену заново</button></div>
+      <div class="row col"><button class="btn primary" id="loseAd">Смотреть рекламу: +1 место</button><button class="btn ghost" id="loseCont">+1 место за 150 монет</button><button class="btn ghost" id="loseRetry">Начать смену заново</button></div>
     </div></div>
+
+    <div class="ov" id="ovAd" hidden><div class="card"><div class="eyebrow">Реклама · демо</div><h2 id="adT">3</h2><p>Здесь будет ролик рекламодателя. В демо просто подожди пару секунд, место добавится само.</p></div></div>
 
     <div class="ov" id="ovPause" hidden><div class="card">
       <div class="eyebrow">Перерыв</div>
@@ -213,7 +215,7 @@ button:focus-visible{outline:3px solid #fff;outline-offset:2px}
     <div class="steps">
       <div class="step"><div class="sn">1</div><div><b>Картина из кубиков.</b> Твоя цель: снести их все, до последнего.</div><img data-help="help_1" alt="" hidden></div>
       <div class="step"><div class="sn">2</div><div><b>Внизу стрелки.</b> Цвет стрелка = цвет кубиков, которые он бьет. Число = сколько у него патронов. <span class="ball" style="background:#3f7cff">20</span> собьет до 20 синих.</div><img data-help="help_2" alt="" hidden></div>
-      <div class="step"><div class="sn">3</div><div><b>Тапни стрелка.</b> Он проедет один круг по конвейеру вокруг картины и собьет только <b>крайние</b> кубики своего цвета. Внутренние закрыты, пока не снят слой снаружи: они темнее <span class="chip" style="background:#ffd23f"></span><span class="chip dim" style="background:#ffd23f"></span><br>Над стрелком видно, что будет: <span class="tag" style="background:#2fcb82">собьет 12</span> отлично, <span class="tag" style="background:#9a93c4">нет целей</span> запускать рано.</div><img data-help="help_3" alt="" hidden></div>
+      <div class="step"><div class="sn">3</div><div><b>Тапни стрелка.</b> Он проедет один круг по конвейеру вокруг картины и собьет только <b>крайние</b> кубики своего цвета. Внутренние закрыты, пока не снят слой снаружи: они темнее <span class="chip" style="background:#ffd23f"></span><span class="chip dim" style="background:#ffd23f"></span><br>«Подсказка» покажет прогноз над стрелками: <span class="tag" style="background:#2fcb82">собьет 12</span> отлично, <span class="tag" style="background:#9a93c4">нет целей</span> пока рано.</div><img data-help="help_3" alt="" hidden></div>
       <div class="step"><div class="sn">4</div><div><b>Патроны остались?</b> Стрелок сядет на скамейку и подождет. Тапни его снова, когда откроются его кубики. <b>Скамейка забилась = смена сорвана.</b></div><img data-help="help_4" alt="" hidden></div>
       <div class="step"><div class="sn">!</div><div><b>Секрет:</b> смотри, какой цвет сейчас снаружи картины, и запускай стрелков этого цвета. Не уверен? Жми «Подсказку»: она подсветит лучшего стрелка, его цели и покажет прогноз у всех.</div></div>
     </div>
@@ -327,7 +329,7 @@ function patternCells(kind,W,H,cols){
   }
   return c;
 }
-function isSpriteLevel(n){const boss=n%10===0;return n!==1&&(boss||n%4!==3)}
+function isSpriteLevel(n){const boss=n%10===0,hard=!boss&&n%5===0;return n!==1&&(boss||hard||n%4!==3)}
 function spriteSlot(n){let k=-1;for(let m=2;m<=n;m++)if(isSpriteLevel(m))k++;return k}
 function spritePic(si,rng,cycle,margin,frame,boss){
   const sp=SP[si];let rows=sp.rows.map(r=>r.slice());
@@ -356,8 +358,10 @@ function levelSpec(n){
   if(specCache.has(n))return specCache.get(n);
   const rng=rngOf(n*2654435761^0x9e3779b9);
   const boss=n%10===0,hard=!boss&&n%5===0;
-  let cols=n<=2?2:n<=12?3:4;if(hard)cols=Math.min(5,cols+1);
-  let bench=n>30?4:5;if(hard)bench-=1;if(boss||n<=4)bench=5;
+  let cols=n<=2?2:n<=10?3:4;if(hard)cols=Math.min(5,cols+1);
+  let bench=n<=2?5:4;if(hard)bench=3;
+  const ramp=Math.min(1,Math.max(0,(n-2)/28)),tough=hard||boss;
+  const diff=n<=2?{block:0,two:0,cap:0}:{block:tough?.34:.14+.2*ramp,two:tough?.3:.12+.18*ramp,cap:bench-(tough?0:(n<=6?2:1)),minB:tough?2:1};
   let pic;
   if(n===1)pic={W:7,H:7,cells:patternCells('ring',7,7,['b','y']),name:'Конфета',sprite:-1};
   else if(!isSpriteLevel(n)){
@@ -370,7 +374,7 @@ function levelSpec(n){
     const slot=spriteSlot(n);const si=slot%SP.length,cycle=Math.floor(slot/SP.length);
     pic=spritePic(si,rng,cycle,boss?3:(n<14?1:2),n>=8&&!boss,boss);
   }
-  const spec=Object.assign({n,boss,hard,cols,bench},pic);
+  const spec=Object.assign({n,boss,hard,cols,bench,diff},pic);
   specCache.set(n,spec);return spec;
 }
 
@@ -403,26 +407,48 @@ function lapSim(g,W,H,lanes,c,ammo){
 /* builds a launch order that clears the board with an empty bench, then deals it into columns:
    every column is a subsequence of that order, so the level is always solvable */
 function genShooters(spec,rng){
-  const {W,H}=spec,g=spec.cells.slice(),lanes=getLanes(W,H),rem={};let total=0;
-  for(const c of g)if(c){rem[c]=(rem[c]||0)+1;total++}
-  const seq=[];let guard=0;
-  while(total>0&&guard++<5000){
-    const cand=[];let sum=0;
-    for(const c in rem){if(rem[c]<=0)continue;const h=lapSim(g.slice(),W,H,lanes,c,1e9);if(h>0){const w=h*h;cand.push([c,h,w]);sum+=w}}
-    let r=rng()*sum,pick=cand[0];for(const x of cand){r-=x[2];if(r<=0){pick=x;break}}
-    const [c,h]=pick;let A=Math.min(h,rem[c]);
-    if(A>=10&&rem[c]-A>=3)A=Math.floor(A/5)*5;
-    lapSim(g,W,H,lanes,c,A);rem[c]-=A;total-=A;seq.push({c,a:A,ord:seq.length});
+  /* Builds a reference playthrough and deals its launch order into columns (every column is a
+     subsequence of it), so a solution always exists. Harder levels add "blockers" (shooters whose
+     colour is still hidden: they must be parked on the bench) and "two-lap" shooters (more ammo than
+     one lap can use). The reference never uses more than D.cap bench seats. */
+  const {W,H}=spec,lanes=getLanes(W,H),D=spec.diff||{block:0,two:0,cap:0};
+  const nice=(r,u)=>{if(u<=12)return u;const m=Math.min(20,u);return 5*(1+Math.floor(r()*Math.max(1,Math.floor(m/5))))};
+  let seq=null;
+  for(let att=0;att<60&&!seq;att++){
+    const g=spec.cells.slice(),un={};let left=0;
+    for(const c of g)if(c){un[c]=(un[c]||0)+1;left++}
+    const out=[],bench=[],hard=att<40;let guard=0;
+    while(left>0&&guard++<6000){
+      let did=false;
+      for(let i=0;i<bench.length;i++){const b=bench[i];const h=lapSim(g.slice(),W,H,lanes,b.c,b.a);if(h>0){lapSim(g,W,H,lanes,b.c,b.a);b.a-=h;left-=h;if(b.a<=0)bench.splice(i,1);did=true;break}}
+      if(did)continue;
+      const cand=[];let sum=0;
+      for(const c in un){if(un[c]<=0)continue;const h=lapSim(g.slice(),W,H,lanes,c,1e9);if(h>0){const w=h*h;cand.push([c,h,w]);sum+=w}}
+      const hidden=Object.keys(un).filter(c=>un[c]>0&&!cand.some(x=>x[0]===c));
+      if(hard&&hidden.length&&bench.length<D.cap&&rng()<D.block){
+        const c=hidden[Math.floor(rng()*hidden.length)],A=Math.min(un[c],nice(rng,un[c]));
+        un[c]-=A;out.push({c,a:A,ord:out.length,blk:1});bench.push({c,a:A});continue;
+      }
+      if(!cand.length)break;
+      let r=rng()*sum,pick=cand[0];for(const x of cand){r-=x[2];if(r<=0){pick=x;break}}
+      const [c,h]=pick;let A=Math.min(h,un[c]);
+      if(A>=10&&un[c]-A>=3)A=Math.floor(A/5)*5;
+      if(hard&&un[c]-A>0&&bench.length<D.cap&&rng()<D.two)A+=Math.min(un[c]-A,2+Math.floor(rng()*6));
+      const hits=lapSim(g,W,H,lanes,c,A);
+      un[c]-=A;left-=hits;out.push({c,a:A,ord:out.length});
+      if(A>hits)bench.push({c,a:A-hits});
+    }
+    if(left===0&&(!hard||out.filter(o=>o.blk).length>=(D.minB||0)))seq=out;
   }
   const K=spec.cols,cols=Array.from({length:K},()=>[]);
-  if(spec.n<=4)seq.forEach((s,i)=>cols[i%K].push(s));
+  if(spec.n<=2)seq.forEach((s,i)=>cols[i%K].push(s));
   else for(const s of seq){const mn=Math.min(...cols.map(c=>c.length));const ok=cols.filter(c=>c.length<=mn+1);ok[Math.floor(rng()*ok.length)].push(s)}
   return cols;
 }
 
 /* ================= save ================= */
 const SAVE_KEY='pixel-smena-v1';
-let SV={unl:1,stars:{},coins:200,snd:true,gal:[],tut:{}};
+let SV={unl:1,stars:{},coins:200,snd:true,gal:[],tut:{},inv:{hint:3,hammer:1,slot:1}};
 try{const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');if(d&&typeof d==='object')SV=Object.assign(SV,d)}catch(e){}
 function save(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(SV))}catch(e){}}
 
@@ -448,9 +474,37 @@ const sfx={
   fever(){tone(260,.55,'sawtooth',.06,1300)},
   click(){tone(640,.04,'sine',.06)},
   hammer(){tone(95,.22,'square',.12,40)},
+  beat(){tone(72,.12,'sine',.28,48);tone(72,.1,'sine',.2,48,.17)},
   deny(){tone(180,.12,'square',.05,140)}
 };
 function vib(p){try{navigator.vibrate&&navigator.vibrate(p)}catch(e){}}
+
+/* ================= analytics =================
+   Anonymous gameplay events (random player id, no personal data) -> Supabase table "events".
+   The key is the public insert-only key; reading happens only through the stats function. */
+const AN={url:'https://vajpghoztikbcnvfkxtp.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhanBnaG96dGlrYmNudmZreHRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODYyMDIsImV4cCI6MjEwNTQ2MjIwMn0.3OIKjC14WBKZmvftmptfNbhd2wtKXxCR5r3x1Lxk3TI'};
+const PID=(()=>{try{let p=localStorage.getItem('smena-pid');if(!p){p=(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2));localStorage.setItem('smena-pid',p);localStorage.setItem('smena-first',String(Date.now()))}return p}catch(e){return 'anon-'+Math.random().toString(36).slice(2)}})();
+const SID=Math.random().toString(36).slice(2,10);
+const PLAT=location.protocol==='file:'?'apk':((matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone)?'pwa':'web');
+const DAY=(()=>{try{return Math.floor((Date.now()-Number(localStorage.getItem('smena-first')||Date.now()))/864e5)}catch(e){return 0}})();
+let AQ=[];try{AQ=JSON.parse(localStorage.getItem('smena-aq')||'[]')||[]}catch(e){AQ=[]}
+function aqSave(){try{localStorage.setItem('smena-aq',JSON.stringify(AQ))}catch(e){}}
+function track(ev,d){
+  if(!AN.url.startsWith('http'))return;
+  d=d||{};AQ.push({pid:PID,sid:SID,ev,lvl:d.lvl||null,plat:PLAT,ts:new Date().toISOString(),data:d});
+  if(AQ.length>300)AQ=AQ.slice(-300);aqSave();
+  clearTimeout(track.t);track.t=setTimeout(flush,/win|lose|quit/.test(ev)?300:2500);
+}
+function flush(keep){
+  if(!AQ.length||flush.busy||!AN.url.startsWith('http'))return;
+  const batch=AQ.slice(0,60);flush.busy=true;
+  fetch(AN.url+'/rest/v1/events',{method:'POST',keepalive:!!keep,headers:{apikey:AN.key,...(AN.key.startsWith('ey')?{Authorization:'Bearer '+AN.key}:{}),'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(batch)})
+    .then(r=>{if(r.ok){AQ=AQ.slice(batch.length);aqSave()}}).catch(()=>{})
+    .finally(()=>{flush.busy=false;if(AQ.length&&!keep)setTimeout(flush,5000)});
+}
+addEventListener('pagehide',()=>flush(true));
+document.addEventListener('visibilitychange',()=>{if(document.hidden)flush(true)});
+function progPct(){return S&&S.total?Math.round((1-S.left/S.total)*100):0}
 
 /* ================= game state ================= */
 const cv=$('#cv'),ctx=cv.getContext('2d');
@@ -459,23 +513,26 @@ const M=1.05,BELT=1.35;
 
 function mk(o){return{c:o.c,a:o.a,ord:o.ord,id:uid++,x:0,y:0,s:0,li:0,rec:0,fly:1,fx:0,fy:0,on:false}}
 function startLevel(n){
+  if(S&&S.state==='play'&&S.n)track('level_quit',{lvl:S.n,secs:Math.round(S.t),prog:progPct()});
+  SV.tries=SV.tries||{};SV.tries[n]=(SV.tries[n]||0)+1;save();
   const spec=levelSpec(n),rng=rngOf(n*9973+17);
   const cols=genShooters(spec,rng).map(c=>c.map(mk));
   const lanes=getLanes(spec.W,spec.H),P=2*spec.W+2*spec.H+4;
   let left=0;for(const c of spec.cells)if(c)left++;
   S={n,spec,W:spec.W,H:spec.H,g:spec.cells.slice(),lanes,P,cols,bench:Array(spec.bench).fill(null),nb0:spec.bench,
      belt:[],wait:[],proj:[],parts:[],floats:[],fever:0,feverT:0,fmax:Math.max(18,Math.min(45,Math.round(left*.22))),
-     combo:0,comboT:0,aim:{},aimT:0,hintAimT:0,aimAll:n<=8,progShown:-1,state:'play',benchMax:0,cont:false,coins:0,t:0,hammer:false,hint:null,hintT:0,left,total:left,
-     speed:Math.max(12,Math.min(24,P/3.3)),launches:0,paused:false,over:null,winT:0,loseT:0,auto:n<=2,autoT:0,shake:0};
+     combo:0,comboT:0,aim:{},aimT:0,hintAimT:0,aimAll:n<=1,hbT:0,progShown:-1,state:'play',benchMax:0,cont:false,coins:0,t:0,hammer:false,hint:null,hintT:0,left,total:left,
+     speed:Math.max(14,Math.min(26,P/3)),launches:0,paused:false,over:null,winT:0,loseT:0,auto:n<=1,autoT:0,shake:0};
   $('#gLvl').textContent='Смена '+n;
   const bd=$('#gBadge');bd.hidden=!(spec.hard||spec.boss);bd.textContent=spec.boss?'Босс':'Сложно';bd.className='badge'+(spec.boss?' boss':'');
-  ['#ovWin','#ovLose','#ovPause'].forEach(s=>$(s).hidden=true);
+  ['#ovWin','#ovLose','#ovPause','#ovAd'].forEach(s=>$(s).hidden=true);
   $('#game').classList.remove('fever');
-  setHammer(false);updCoins();resize();placeAll(true);
+  setHammer(false);updCoins();updBoost();resize();placeAll(true);
   S.floats.push({x:CW/2,y:LY.oy+LY.bh/2,text:'СМЕНА '+n,life:1.4,max:1.4,size:Math.min(46,CW/8.5),col:'#ffffff',vy:-10});
   if(spec.boss)S.floats.push({x:CW/2,y:LY.oy+LY.bh/2+40,text:'БОСС',life:1.3,max:1.3,size:22,col:'#c7a6ff',vy:-10});
   else if(spec.hard)S.floats.push({x:CW/2,y:LY.oy+LY.bh/2+40,text:'СЛОЖНО',life:1.3,max:1.3,size:20,col:'#ff8a9a',vy:-10});
   tutorial('start');
+  track('level_start',{lvl:n,tries:SV.tries[n],unl:SV.unl});
   if(!SV.tut.help)showHelp();
 }
 
@@ -597,7 +654,7 @@ function bestMove(){
   let best=null,bs=-1e9;
   for(const sh of opts){
     const h=lapSim(S.g.slice(),S.W,S.H,S.lanes,sh.c,sh.a);
-    const sc=(h===sh.a?1000:0)+h*3-(h===0?2000:0)-sh.ord*.01;
+    const sc=(h===sh.a?1000:0)+h*3-(h===0?2000:0)-(h===0&&S.bench.includes(sh)?3000:0)-sh.ord*.01;
     if(sc>bs){bs=sc;best=sh}
   }
   return best;
@@ -653,7 +710,8 @@ function update(dt){
   for(let i=S.floats.length-1;i>=0;i--){const f=S.floats[i];f.life-=dt;f.y+=f.vy*dt;if(f.life<=0)S.floats.splice(i,1)}
   if(S.shake>0)S.shake=Math.max(0,S.shake-dt);
   if(S.hint){S.hintT-=dt;if(S.hintT<=0)S.hint=null}
-  if(S.hintAimT>0)S.hintAimT-=dt;S.aimAll=S.n<=8||S.hintAimT>0;
+  if(S.hintAimT>0)S.hintAimT-=dt;S.aimAll=S.n<=1||S.hintAimT>0;
+  if(S.state==='play'){const free=S.bench.filter(x=>!x).length;if(free<=1&&S.bench.some(Boolean)){S.hbT-=dt;if(S.hbT<=0){S.hbT=free===0?.55:.85;sfx.beat()}}else S.hbT=0}
   S.aimT-=dt;if(S.aimT<=0){S.aimT=.15;S.aim={};const q=[...S.cols.map(c=>c[0]),...S.bench];for(const sh of q)if(sh)S.aim[sh.id]=lapSim(S.g.slice(),S.W,S.H,S.lanes,sh.c,sh.a)}
   const sqd=dt*3.2;for(const col of S.cols)for(const sh of col)if(sh.sq)sh.sq=Math.max(0,sh.sq-sqd);for(const sh of S.bench)if(sh&&sh.sq)sh.sq=Math.max(0,sh.sq-sqd);for(const sh of S.wait)if(sh.sq)sh.sq=Math.max(0,sh.sq-sqd);for(const sh of S.belt)if(sh.sq)sh.sq=Math.max(0,sh.sq-sqd);
   const pr=Math.round((1-S.left/S.total)*100);if(pr!==S.progShown){S.progShown=pr;const pe=document.getElementById('gProg');if(pe)pe.style.width=pr+'%'}
@@ -662,6 +720,7 @@ function update(dt){
   if(S.state==='play'&&S.left===0&&S.proj.length===0){S.state='winwait';S.winT=.8}
   if(S.state==='winwait'){S.winT-=dt;if(S.winT<=0){S.state='won';onWin()}}
   if(S.state==='lose'&&S.loseT>0){S.loseT-=dt;if(S.loseT<=0)showLose()}
+  if(S.state==='play'&&!S.belt.length&&!S.wait.length&&!S.proj.length&&!S.bench.includes(null)){const q=[...S.cols.map(c=>c[0]),...S.bench].filter(Boolean);if(q.length&&q.every(sh=>S.aim[sh.id]===0)){S.over=null;S.state='lose';S.loseT=.4;sfx.lose();vib([60,40,60])}}
 }
 
 /* ================= draw ================= */
@@ -694,13 +753,13 @@ function drawShooter(sh,x,y,R,ang,alpha,eyes){
 function ring(x,y,R,col,w){ctx.beginPath();ctx.arc(x,y,R,0,7);ctx.strokeStyle=col;ctx.lineWidth=w;ctx.stroke()}
 function aimInfo(sh){const h=S.aim[sh.id];if(h===undefined)return null;return{h,full:h===sh.a,zero:h===0}}
 function aimPill(x,y,sh){
-  const a=aimInfo(sh);if(!a)return;if(!S.aimAll&&!a.zero)return;
+  const a=aimInfo(sh);if(!a)return;if(!S.aimAll)return;
   const txt=a.zero?'нет целей':'собьет '+a.h;ctx.font=`900 11px ${FB}`;const w=ctx.measureText(txt).width+16,h=18;
   ctx.fillStyle=a.zero?'#9a93c4':a.full?'#2fcb82':'#ffae1a';rr(ctx,x-w/2,y-h/2,w,h,9);ctx.fill();
   ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,x,y+.5);
 }
 function aimDot(x,y,sh){
-  const a=aimInfo(sh);if(!a)return;if(!S.aimAll&&!a.zero)return;
+  const a=aimInfo(sh);if(!a)return;if(!S.aimAll)return;
   const r=8;ctx.fillStyle=a.zero?'#9a93c4':a.full?'#2fcb82':'#ffae1a';ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();
   ctx.lineWidth=2;ctx.strokeStyle='#fff';ctx.stroke();
   ctx.font=`900 10px ${FB}`;ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(a.zero?'0':String(a.h),x,y+.5);
@@ -795,7 +854,7 @@ cv.addEventListener('pointerdown',e=>{
   const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
   if(S.hammer){
     const cx=Math.floor((x-LY.ox)/LY.cs),cy=Math.floor((y-LY.oy)/LY.cs);
-    if(cx>=0&&cy>=0&&cx<S.W&&cy<S.H&&doHammer(cx,cy)){SV.coins-=100;S.boost=true;save();updCoins();setHammer(false)}
+    if(cx>=0&&cy>=0&&cx<S.W&&cy<S.H&&doHammer(cx,cy)){pay('hammer',$('#bHammer'));S.boost=true;setHammer(false)}
     return;
   }
   for(let i=0;i<S.bench.length;i++){if(!S.bench[i])continue;const[bx,by]=benchPos(i);if(Math.hypot(x-bx,y-by)<LY.slot*.55){launchBench(i);return}}
@@ -810,8 +869,8 @@ function tutorial(ev){
   const once=(key,txt,ms)=>{if(T[key])return;T[key]=1;save();toast(txt,ms)};
   if(ev==='start'){
     if(n===1)once('t1','Начни с подсвеченного стрелка: снаружи картины сейчас синие кубики',6000);
-    else if(n===2)once('t2','Стрелок бьет только крайний кубик в ряду. Сначала снимай внешний слой, потом доберешься до сердца',6000);
-    else if(n===3)once('t3','Конвейер держит несколько стрелков сразу. Запускай пачкой и лови лихорадку',5000);
+    else if(n===2)once('t2','Внутренние кубики закрыты. Смотри, какой цвет сейчас снаружи картины, и запускай стрелков этого цвета',6000);
+    else if(n===3)once('t3','Бывает, нужный стрелок стоит за лишним. Отправь лишнего на скамейку, он пригодится, когда откроется его цвет. Только не забей скамейку',7000);
     else if(S.spec.hard)once('th','Сложная смена: на скамейке меньше мест, думай перед каждым тапом',5000);
     else if(S.spec.boss)once('tb','Босс: большая картина в трех рамках. Чисти слоями',5000);
   }
@@ -821,11 +880,14 @@ function tutorial(ev){
 function updCoins(){$('#gCoins').textContent=SV.coins;$('#mCoins').textContent=SV.coins}
 function setHammer(on){if(S)S.hammer=on;$('#bHammer').classList.toggle('on',on)}
 function deny(btn,msg){btn.classList.remove('shake');void btn.offsetWidth;btn.classList.add('shake');sfx.deny();toast(msg,2200)}
-$('#bHint').onclick=e=>{ac();if(!S||S.state!=='play')return;const b=e.currentTarget;if(SV.coins<40)return deny(b,'Не хватает монет. Их дают за смены и лихорадку');const m=bestMove();if(!m)return;SV.coins-=40;S.boost=true;S.hint=m.id;S.hintT=4;S.hintAimT=6;save();updCoins();sfx.click()};
-$('#bHammer').onclick=e=>{ac();if(!S||S.state!=='play')return;const b=e.currentTarget;if(S.hammer){setHammer(false);return}if(SV.coins<100)return deny(b,'Не хватает монет. Их дают за смены и лихорадку');setHammer(true);sfx.click();toast('Тапни по картине: молот снесет квадрат 3×3',2600)};
-$('#bSlot').onclick=e=>{ac();if(!S||S.state!=='play')return;const b=e.currentTarget;if(S.bench.length>=7)return deny(b,'Больше мест не поместится');if(SV.coins<150)return deny(b,'Не хватает монет. Их дают за смены и лихорадку');SV.coins-=150;S.boost=true;S.bench.push(null);save();updCoins();layout();sfx.click()};
+const PRICE={hint:60,hammer:150,slot:200};
+function updBoost(){if(!SV.inv)SV.inv={hint:0,hammer:0,slot:0};for(const [k,id] of [['hint','#bHint'],['hammer','#bHammer'],['slot','#bSlot']]){const p=document.querySelector(id+' .price');if(p)p.textContent=SV.inv[k]>0?'×'+SV.inv[k]:PRICE[k]}}
+function pay(kind,btn){track('booster',{lvl:S&&S.n,kind,via:SV.inv[kind]>0?'inv':SV.coins>=PRICE[kind]?'coins':'no_money'});if(SV.inv[kind]>0){SV.inv[kind]--;save();updBoost();return true}if(SV.coins<PRICE[kind]){deny(btn,'Не хватает монет. Их дают за смены, звезды и лихорадку');return false}SV.coins-=PRICE[kind];save();updCoins();updBoost();return true}
+$('#bHint').onclick=e=>{ac();if(!S||S.state!=='play')return;const b=e.currentTarget;const m=bestMove();if(!m)return;if(!pay('hint',b))return;S.boost=true;S.hint=m.id;S.hintT=4;S.hintAimT=6;sfx.click()};
+$('#bHammer').onclick=e=>{ac();if(!S||S.state!=='play')return;const b=e.currentTarget;if(S.hammer){setHammer(false);return}if(SV.inv.hammer<=0&&SV.coins<PRICE.hammer)return deny(b,'Не хватает монет. Их дают за смены, звезды и лихорадку');setHammer(true);sfx.click();toast('Тапни по картине: молот снесет квадрат 3×3',2600)};
+$('#bSlot').onclick=e=>{ac();if(!S||S.state!=='play')return;const b=e.currentTarget;if(S.bench.length>=7)return deny(b,'Больше мест не поместится');if(!pay('slot',b))return;S.boost=true;S.bench.push(null);layout();sfx.click()};
 
-function showHelp(after){S&&(S.paused=true);$('#ovHelp').hidden=false;$('#helpOk').onclick=()=>{$('#ovHelp').hidden=true;SV.tut.help=1;save();if(S)S.paused=false;if(after)after()}}
+function showHelp(after){track('help_open',{lvl:S&&S.n});S&&(S.paused=true);$('#ovHelp').hidden=false;$('#helpOk').onclick=()=>{$('#ovHelp').hidden=true;SV.tut.help=1;save();if(S)S.paused=false;if(after)after()}}
 $('#helpBtn').onclick=()=>{ac();showHelp()};
 $('#howBtn').onclick=()=>{ac();showHelp()};
 $('#pauseBtn').onclick=()=>{ac();if(!S)return;S.paused=true;$('#pSnd').textContent='Звук: '+(SV.snd?'вкл':'выкл');$('#ovPause').hidden=false};
@@ -835,14 +897,19 @@ $('#pMenu').onclick=()=>{showMenu()};
 $('#pSnd').onclick=()=>{SV.snd=!SV.snd;save();$('#pSnd').textContent='Звук: '+(SV.snd?'вкл':'выкл')};
 
 function showLose(){toastEl.classList.add('hide');
-  const free=!S.cont;
-  $('#loseCont').textContent=free?'+1 место и дальше (бесплатно)':'+1 место и дальше · 150';
+  track('level_lose',{lvl:S.n,secs:Math.round(S.t),prog:progPct(),reason:S.over?'bench':'stuck',cont:S.cont});
+  const free=S.n<=3&&!S.cont;
+  $('#loseAd').hidden=free;
+  $('#loseCont').textContent=free?'+1 место и дальше (бесплатно)':'+1 место за 150 монет';
   $('#ovLose').hidden=false;
 }
+function contRun(via){track('continue',{lvl:S.n,via:via||'coins'});S.cont=true;S.bench.push(S.over);S.over=null;S.state='play';layout();$('#ovLose').hidden=true}
 $('#loseCont').onclick=()=>{
-  if(S.cont){if(SV.coins<150){deny($('#loseCont'),'Не хватает монет');return}SV.coins-=150;save();updCoins()}
-  S.cont=true;S.bench.push(S.over);S.over=null;S.state='play';layout();$('#ovLose').hidden=true;
+  const free=S.n<=3&&!S.cont;
+  if(!free){if(SV.coins<150){deny($('#loseCont'),'Не хватает монет');return}SV.coins-=150;save();updCoins()}
+  contRun(free?'free':'coins');
 };
+$('#loseAd').onclick=()=>{$('#ovLose').hidden=true;$('#ovAd').hidden=false;let t=3;$('#adT').textContent=t;const iv=setInterval(()=>{t--;$('#adT').textContent=t;if(t<=0){clearInterval(iv);$('#ovAd').hidden=true;contRun('ad')}},1000)};
 $('#loseRetry').onclick=()=>startLevel(S.n);
 
 const STAR_ON='<svg viewBox="0 0 24 24"><path d="M12 2.5l2.9 6.2 6.6.7-5 4.5 1.4 6.6L12 17.2l-5.9 3.3 1.4-6.6-5-4.5 6.6-.7z" fill="#ffd02b" stroke="#e08a00" stroke-width="1.2"/></svg>';
@@ -857,9 +924,11 @@ function onWin(){
   const nb=S.nb0,t3=Math.floor(nb*.5);
   let st=S.cont?1:(S.benchMax<=t3?3:S.benchMax<=nb-1?2:1);
   let coins=10+st*10+Math.floor(S.coins);if(S.spec.boss)coins*=2;
+  if(S.spec.boss){SV.inv.hint++;SV.inv.hammer++}
   SV.coins+=coins;SV.stars[S.n]=Math.max(SV.stars[S.n]||0,st);SV.unl=Math.max(SV.unl,S.n+1);
   let isNew=false;if(S.spec.sprite>=0&&!SV.gal.includes(S.spec.sprite)){SV.gal.push(S.spec.sprite);isNew=true}
-  save();updCoins();sfx.win();toastEl.classList.add('hide');vib([30,50,30,50,60]);
+  save();updCoins();sfx.win();toastEl.classList.add('hide');
+  track('level_win',{lvl:S.n,stars:st,secs:Math.round(S.t),tries:SV.tries&&SV.tries[S.n]||1,bench:S.benchMax,cont:S.cont,boost:!!S.boost});vib([30,50,30,50,60]);
   // confetti
   for(let i=0;i<70;i++)S.parts.push({x:CW/2,y:LY.oy+LY.bh/2,vx:(Math.random()-.5)*700,vy:-Math.random()*650-100,life:1.2+Math.random()*.8,c:PAL[LET[i%LET.length]],sz:5+Math.random()*5,rot:Math.random()*6,vr:(Math.random()-.5)*20});
   setTimeout(()=>{
@@ -905,7 +974,7 @@ function renderMenu(){
     d.appendChild(document.createTextNode(have?sp.n:'???'));gal.appendChild(d);
   });
 }
-function showMenu(){S=null;$('#game').hidden=true;$('#menu').hidden=false;renderMenu()}
+function showMenu(){if(S&&(S.state==='play'||S.state==='lose'))track('level_quit',{lvl:S.n,secs:Math.round(S.t),prog:progPct()});S=null;$('#game').hidden=true;$('#menu').hidden=false;renderMenu()}
 function openLevel(n){$('#menu').hidden=true;$('#game').hidden=false;requestAnimationFrame(()=>{startLevel(n)})}
 $('#playBtn').onclick=()=>{ac();sfx.click();openLevel(SV.unl)};
 $('#tabL').onclick=()=>{$('#tabL').setAttribute('aria-selected','true');$('#tabG').setAttribute('aria-selected','false');$('#paneL').hidden=false;$('#paneG').hidden=true};
@@ -919,6 +988,7 @@ function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(S&&!S.pau
 requestAnimationFrame(frame);
 renderMenu();
 loadSkin();
+track('app_open',{unl:SV.unl,day:DAY,stars:Object.values(SV.stars).reduce((a,b)=>a+b,0)});
 
 /* hooks for automated playtesting */
 window.PF={applySkinConfig,SKIN,levelSpec,genShooters,getLanes,lapSim,start:n=>{$('#menu').hidden=true;$('#game').hidden=false;startLevel(n)},get S(){return S},update,bestMove,launchCol,launchBench,SV:()=>SV,showMenu};

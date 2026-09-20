@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Смена · статистика</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap">
+<style>
+:root{--bg:#f4f1ff;--card:#fff;--ink:#2d2a54;--muted:#6f6a99;--line:#e6e0fa;--accent:#6d4fe0;--accent-2:#b9a8ff;--good:#1f9a61;--warn:#c77700;--bad:#d6334f;--edge:#d4c9f5}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Nunito,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding-inline:16px;padding-block:20px 40px;display:flex;flex-direction:column;gap:16px}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{margin:0;font-weight:900;font-size:clamp(24px,6vw,34px);line-height:1.05}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);font-weight:700;font-size:14px;margin-top:4px}
+button{font:inherit;font-weight:800;border:0;border-radius:12px;padding:10px 14px;background:var(--accent);color:#fff;cursor:pointer;box-shadow:0 3px 0 #4b33a8}
+button:focus-visible{outline:3px solid var(--accent-2);outline-offset:2px}
+.note{background:#fff7dd;border:1px solid #f1d48a;border-radius:14px;padding:12px 14px;font-weight:700;font-size:14px;line-height:1.45}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{background:var(--card);border-radius:16px;padding:14px;box-shadow:0 3px 0 var(--edge)}
+.tile .k{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.tile .v{font-size:30px;font-weight:900;font-variant-numeric:tabular-nums;margin-top:2px}
+.tile .h{font-size:13px;font-weight:700;color:var(--muted)}
+.card{background:var(--card);border-radius:18px;padding:16px;box-shadow:0 3px 0 var(--edge)}
+.card h2{margin:0 0 2px;font-size:18px;font-weight:900}
+.card p.lead{margin:0 0 12px;color:var(--muted);font-weight:700;font-size:14px}
+.chart{position:relative;width:100%;overflow-x:auto}
+.chart svg{display:block}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;font-size:13px;font-weight:700;padding:7px 10px;border-radius:10px;white-space:nowrap;transform:translate(-50%,-110%);opacity:0;transition:opacity .1s}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:800}
+th:first-child,td:first-child,td.l,th.l{text-align:left}
+.pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:900}
+.pill.easy{background:#e3f6ec;color:var(--good)}.pill.ok{background:#ece7ff;color:var(--accent)}.pill.hard{background:#fff0d6;color:var(--warn)}.pill.wall{background:#ffe3e8;color:var(--bad)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.kv{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);font-weight:700;font-size:14px}
+.kv span:last-child{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.help{font-size:14px;line-height:1.5;color:var(--muted);font-weight:600}
+.help b{color:var(--ink)}
+</style>
+</head><body>
+<div class="wrap">
+  <header>
+    <div><h1>Пиксельная смена · <span>статистика</span></h1><div class="sub" id="upd">Загрузка…</div></div>
+    <button id="refresh">Обновить</button>
+  </header>
+  <div class="note" id="demo" hidden>Это пример данных: аналитика еще не подключена к базе.</div>
+  <div class="note" id="empty" hidden>Пока нет ни одного игрока. Раздай ссылку на игру, и через пару минут здесь появятся цифры: <a href="../" id="gameLink">открыть игру</a>.</div>
+  <section class="tiles" id="tiles"></section>
+  <section class="card">
+    <h2>Сколько игроков дошли до уровня</h2>
+    <p class="lead">Где столбик резко падает, там люди бросают игру. Это главное место для правок.</p>
+    <div class="chart" id="funnel"></div>
+  </section>
+  <section class="card">
+    <h2>Какой процент попыток заканчивается победой</h2>
+    <p class="lead">Норма для казуалки: легкие уровни 80-95%, сложные 40-60%. Ниже 25% уровень превращается в стену.</p>
+    <div class="chart" id="winrate"></div>
+  </section>
+  <section class="card">
+    <h2>Уровни подробно</h2>
+    <div class="scroll"><table id="tbl"></table></div>
+  </section>
+  <section class="grid2">
+    <div class="card"><h2>Бустеры</h2><div id="boost"></div></div>
+    <div class="card"><h2>Продолжения после проигрыша</h2><div id="cont"></div></div>
+    <div class="card"><h2>Откуда играют</h2><div id="plat"></div></div>
+  </section>
+  <section class="card help">
+    <b>Как читать.</b> «Дошли» это сколько разных игроков хотя бы раз начали уровень. «Бросили здесь» это игроки, для которых этот уровень оказался последним и которые не заходили больше суток. Возврат D1 и D7 считается от тех, кто впервые зашел хотя бы день или неделю назад.
+  </section>
+</div>
+<script>
+const AN={url:'https://vajpghoztikbcnvfkxtp.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhanBnaG96dGlrYmNudmZreHRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODYyMDIsImV4cCI6MjEwNTQ2MjIwMn0.3OIKjC14WBKZmvftmptfNbhd2wtKXxCR5r3x1Lxk3TI'};
+const $=s=>document.querySelector(s);
+const pct=(a,b)=>b?Math.round(a/b*100):null;
+function sample(){
+  const levels=[];let p=48;
+  for(let l=1;l<=16;l++){const wr=[.97,.95,.9,.62,.4,.7,.85,.55,.75,.3,.8,.6,.5,.66,.35,.5][l-1];const starts=Math.round(p/wr*.9)+1;const wins=Math.round(p*.92);
+    levels.push({lvl:l,players:p,starts,winners:wins,wins,losses:Math.max(0,starts-wins),quits:Math.round(p*.05),continues:Math.round(p*(1-wr)*.4),boosters:Math.round(p*(1-wr)),win_secs:30+l*3,tries:+(1/wr).toFixed(2),stars:2.3});
+    p=Math.max(1,Math.round(p*(l===5||l===10?.72:.93)))}
+  return {updated:new Date().toISOString(),players:48,players_today:21,new_today:9,events:3120,d1_base:39,d1:15,d7_base:12,d7:2,avg_session_min:7.4,levels,
+    stopped:{4:3,5:6,8:2,10:7,15:4},boosters:{'hint / inv':41,'hint / coins':12,'hammer / inv':18,'slot / coins':5},continues:{free:9,ad:14,coins:3},platforms:{web:30,pwa:11,apk:7}};
+}
+async function load(){
+  $('#upd').textContent='Загрузка…';
+  let d;
+  if(!AN.url.startsWith('http')){d=sample();$('#demo').hidden=false}
+  else{
+    try{const r=await fetch(AN.url+'/rest/v1/rpc/game_stats',{method:'POST',headers:{apikey:AN.key,...(AN.key.startsWith('ey')?{Authorization:'Bearer '+AN.key}:{}),'Content-Type':'application/json'},body:'{}'});d=await r.json();if(!r.ok)throw new Error(d.message||r.status)}
+    catch(e){$('#upd').textContent='Не удалось загрузить: '+e.message+'. База Supabase засыпает после недели без игроков, открой ее в панели Supabase, чтобы разбудить.';return}
+  }
+  render(d);
+}
+function tile(k,v,h){return `<div class="tile"><div class="k">${k}</div><div class="v">${v}</div><div class="h">${h||''}</div></div>`}
+function render(d){
+  const t=new Date(d.updated);$('#upd').textContent='Обновлено '+t.toLocaleString('ru-RU',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
+  $('#empty').hidden=d.players>0;
+  const d1=pct(d.d1,d.d1_base),d7=pct(d.d7,d.d7_base);
+  $('#tiles').innerHTML=tile('Игроков всего',d.players,'новых сегодня: '+d.new_today)+tile('Играли за сутки',d.players_today,'уникальных игроков')
+    +tile('Возврат D1',d1==null?'нет данных':d1+'%',d.d1_base?`${d.d1} из ${d.d1_base} · цель 35-40%`:'нужны игроки старше суток')
+    +tile('Возврат D7',d7==null?'нет данных':d7+'%',d.d7_base?`${d.d7} из ${d.d7_base} · цель от 15%`:'нужны игроки старше недели')
+    +tile('Средняя сессия',d.avg_session_min==null?'нет':d.avg_session_min+' мин','от первого до последнего события');
+  const L=(d.levels||[]).filter(x=>x.lvl>0&&x.lvl<=200);
+  bars('#funnel',L.map(x=>({x:x.lvl,v:x.players,tip:`Уровень ${x.lvl}: дошли ${x.players}, прошли ${x.winners}`})),{max:Math.max(1,...L.map(x=>x.players)),fmt:v=>v});
+  bars('#winrate',L.map(x=>{const w=pct(x.wins,x.wins+x.losses);return{x:x.lvl,v:w==null?0:w,tip:`Уровень ${x.lvl}: ${w==null?'нет попыток':w+'% побед'} (${x.wins} побед, ${x.losses} поражений)`}}),{max:100,fmt:v=>v+'%',ref:[25,50,85]});
+  const rate=w=>w==null?'':w>=85?'<span class="pill easy">легко</span>':w>=50?'<span class="pill ok">норма</span>':w>=25?'<span class="pill hard">трудно</span>':'<span class="pill wall">стена</span>';
+  let h='<tr><th>Уровень</th><th>Дошли</th><th>Прошли</th><th>Победы</th><th>Поражения</th><th>Попыток до победы</th><th>Время победы</th><th>Бросили здесь</th><th>Бустеры</th><th>Продолжения</th><th class="l">Оценка</th></tr>';
+  for(const x of L){const w=pct(x.wins,x.wins+x.losses);h+=`<tr><td><b>${x.lvl}</b></td><td>${x.players}</td><td>${x.winners}</td><td>${x.wins}</td><td>${x.losses}</td><td>${x.tries??''}</td><td>${x.win_secs!=null?x.win_secs+' с':''}</td><td>${(d.stopped||{})[x.lvl]||0}</td><td>${x.boosters}</td><td>${x.continues}</td><td class="l">${rate(w)}</td></tr>`}
+  $('#tbl').innerHTML=h;
+  const kv=(o,map)=>{const e=Object.entries(o||{}).sort((a,b)=>b[1]-a[1]);return e.length?e.map(([k,v])=>`<div class="kv"><span>${map?map(k):k}</span><span>${v}</span></div>`).join(''):'<div class="muted">Пока пусто</div>'};
+  const tr=k=>k.replace('hint','Подсказка').replace('hammer','Молот').replace('slot','+Место').replace('/ inv','· из запаса').replace('/ coins','· за монеты').replace('/ no_money','· не хватило монет');
+  $('#boost').innerHTML=kv(d.boosters,tr);
+  $('#cont').innerHTML=kv(d.continues,k=>({free:'Бесплатно (уровни 1-3)',ad:'Реклама',coins:'За монеты'})[k]||k);
+  $('#plat').innerHTML=kv(d.platforms,k=>({web:'Браузер',pwa:'Иконка на экране (PWA)',apk:'Android-приложение'})[k]||k);
+}
+function bars(sel,data,o){
+  const el=$(sel);if(!data.length){el.innerHTML='<div class="muted">Пока нет данных</div>';return}
+  const bw=Math.max(18,Math.min(44,Math.floor((el.clientWidth-50)/data.length)-4)),gap=4,W=40+data.length*(bw+gap)+10,Hh=200,top=16,bottom=26,ph=Hh-top-bottom;
+  const y=v=>top+ph-(v/o.max)*ph;
+  let s=`<svg width="${W}" height="${Hh}" viewBox="0 0 ${W} ${Hh}" role="img">`;
+  const ticks=o.max===100?[0,25,50,75,100]:[0,Math.round(o.max/2),o.max];
+  for(const t of ticks)s+=`<line x1="36" x2="${W}" y1="${y(t)}" y2="${y(t)}" stroke="#e6e0fa" stroke-width="1"/><text x="30" y="${y(t)+4}" text-anchor="end" font-size="11" font-weight="700" fill="#6f6a99">${o.fmt(t)}</text>`;
+  data.forEach((d,i)=>{const x=40+i*(bw+gap),yy=y(d.v),h=Math.max(0,top+ph-yy);
+    s+=`<g class="b" data-i="${i}"><rect x="${x-2}" y="${top}" width="${bw+4}" height="${ph}" fill="transparent"/><path d="M${x},${top+ph} V${yy+Math.min(4,h)} q0,-4 4,-4 h${bw-8} q4,0 4,4 V${top+ph} Z" fill="#6d4fe0"/></g>`;
+    s+=`<text x="${x+bw/2}" y="${Hh-8}" text-anchor="middle" font-size="11" font-weight="800" fill="#6f6a99">${d.x}</text>`});
+  s+='</svg><div class="tip"></div>';el.innerHTML=s;
+  const tip=el.querySelector('.tip');
+  el.querySelectorAll('g.b').forEach(g=>{g.addEventListener('pointerenter',e=>{const d=data[+g.dataset.i];tip.textContent=d.tip;const r=g.getBoundingClientRect(),pr=el.getBoundingClientRect();tip.style.left=(r.left-pr.left+r.width/2+el.scrollLeft)+'px';tip.style.top=(y(d.v)+0)+'px';tip.style.opacity=1;g.querySelector('path').setAttribute('fill','#4b33a8')});
+    g.addEventListener('pointerleave',()=>{tip.style.opacity=0;g.querySelector('path').setAttribute('fill','#6d4fe0')})});
+}
+$('#refresh').onclick=load;load();
+</script>
+</body></html>
