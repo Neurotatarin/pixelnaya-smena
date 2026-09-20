@@ -1,0 +1,42 @@
+name: ipa
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ipa
+  cancel-in-progress: true
+jobs:
+  ipa:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Select Xcode 26
+        run: |
+          X=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$X" ]; then echo "Xcode 26 not found on this runner"; exit 1; fi
+          sudo xcode-select -s "$X"
+          xcodebuild -version
+      - name: Prepare Capacitor iOS
+        run: bash native/prepare.sh ios
+      - name: Build unsigned device app
+        run: |
+          cd native-ios/App
+          if [ -d App.xcworkspace ]; then T="-workspace App.xcworkspace"; else T="-project App.xcodeproj"; fi
+          xcodebuild $T -scheme App -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath dbuild CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" CODE_SIGN_ENTITLEMENTS="" | tail -25
+      - name: Package IPA
+        run: |
+          APP=$(find native-ios/App/dbuild/Build/Products -maxdepth 2 -name "App.app" -path "*iphoneos*" | head -1)
+          echo "app $APP"
+          test -n "$APP"
+          rm -rf ipa && mkdir -p ipa/Payload
+          cp -R "$APP" ipa/Payload/
+          cd ipa && zip -qry ../pixelnaya-smena-unsigned.ipa Payload
+          cd .. && ls -la pixelnaya-smena-unsigned.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-unsigned-ipa
+          path: pixelnaya-smena-unsigned.ipa
